@@ -457,9 +457,14 @@ for (const dialog of [productDialog, cartDialog, accountDialog]) {
 
 const accountReady = account.connect().then(updateAccountLink);
 setInterval(() => { if (account.token) void account.prepareHandoff(); }, 4 * 60_000);
+function refreshAccountAfterReturn() {
+  if (account.token) void account.refresh().then(updateAccountLink).catch(() => {});
+}
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && account.token) void account.refresh().then(updateAccountLink).catch(() => {});
+  if (!document.hidden) refreshAccountAfterReturn();
 });
+window.addEventListener("focus", refreshAccountAfterReturn);
+telegram?.onEvent?.("activated", refreshAccountAfterReturn);
 
 renderCategories();
 renderProducts();
