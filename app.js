@@ -1,4 +1,5 @@
 import { categories, popularIds, products, optionGroupsFor, optionsFor, imageFor } from "./menu-data.js";
+import { MenuAccount } from "./account.js";
 
 const telegram = window.Telegram?.WebApp;
 telegram?.ready();
@@ -17,7 +18,9 @@ const appHeader = $(".app-header");
 const search = $("#menu-search");
 const productDialog = $("#product-dialog");
 const cartDialog = $("#cart-dialog");
+const accountDialog = $("#account-dialog");
 const gamePromo = $("#game-promo");
+const account = new MenuAccount(telegram);
 let category = "Хиты";
 let cart = loadCart();
 let selectedProduct = null;
@@ -273,7 +276,7 @@ function renderCart() {
             </div>
             <div class="cart-line-actions"><button type="button" data-action="line-decrease" data-index="${index}" aria-label="Уменьшить количество ${safe(product.name)}"><span class="icon icon-minus" aria-hidden="true"></span></button><strong>${line.count}</strong><button type="button" data-action="line-increase" data-index="${index}" aria-label="Увеличить количество ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button></div>
           </div>`;
-        }).join("") + `<p class="cart-note">Демо-заказ сохраняется только на этом устройстве. Оплата и отправка в ресторан не выполняются.</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
+        }).join("") + `<p class="cart-note">${account.token ? "Демо-заказ сохранится в истории аккаунта. " : "Демо-заказ сохранится только на этом устройстве. "}Оплата и отправка в ресторан не выполняются.${account.me?.discount_balance ? ` Доступная скидка: ${currency(account.me.discount_balance)}.` : ""}</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
       </div>
       ${hasItems ? `<div class="sheet-footer"><div class="cart-summary"><small>Итого</small><strong>${currency(cartTotal())}</strong></div><button type="button" class="primary-button" data-action="checkout">Оформить демо-заказ</button></div>` : ""}
     </div>`;
@@ -285,13 +288,33 @@ function openCart() {
   document.body.classList.add("modal-open");
 }
 
-function checkout() {
-  const number = Math.floor(80000 + Math.random() * 10000);
+async function checkout() {
+  if (telegram?.initData && !account.token) {
+    showToast("Не удалось войти. Демо-заказ не сохранён");
+    return;
+  }
+  let number = String(Math.floor(80000 + Math.random() * 10000));
+  if (account.token) {
+    try {
+      const items = cart.map(line => ({
+        item_id: line.itemId,
+        name: `${byId.get(line.itemId).name}${portionSuffix(line)}`,
+        count: line.count,
+        unit_price: linePrice(line),
+        options: lineOptions(line).map(option => option[1])
+      }));
+      const order = await account.saveDemoOrder(items);
+      number = order.id.slice(0, 8).toUpperCase();
+    } catch {
+      showToast("Не удалось сохранить демо-заказ");
+      return;
+    }
+  }
   cart = [];
   saveCart();
   cartDialog.innerHTML = `<div class="sheet-layout">
     <div class="sheet-header"><strong>Демо-заказ</strong><button type="button" class="icon-button" data-action="close" aria-label="Закрыть"><span class="icon icon-x" aria-hidden="true"></span></button></div>
-    <div class="sheet-scroll"><div class="order-confirmation"><span class="icon icon-check" aria-hidden="true"></span><h2>Заказ №${number}</h2><p>Это демонстрация оформления. Ресторан не получил заказ, оплата не списана.</p><button type="button" class="primary-button" data-action="close">Вернуться в меню</button></div></div>
+    <div class="sheet-scroll"><div class="order-confirmation"><span class="icon icon-check" aria-hidden="true"></span><h2>Демо-заказ №${number}</h2><p>${account.token ? "Он сохранён в истории аккаунта. " : ""}Ресторан не получил заказ, оплата не списана, купоны не использованы.</p><button type="button" class="primary-button" data-action="close">Вернуться в меню</button></div></div>
   </div>`;
   telegram?.HapticFeedback?.notificationOccurred?.("success");
 }
@@ -332,9 +355,16 @@ menuSections.addEventListener("click", event => {
 $("#header-cart").addEventListener("click", openCart);
 $("#cart-bar").addEventListener("click", openCart);
 gamePromo.addEventListener("click", event => {
-  if (!telegram?.openLink) return;
   event.preventDefault();
-  telegram.openLink(gamePromo.href);
+  const ticket = account.takeHandoff();
+  if (!ticket) {
+    showToast(telegram?.initData ? "Подключаем аккаунт. Нажмите ещё раз" : "Откройте меню через Telegram, чтобы получить скидку");
+    return;
+  }
+  const url = new URL(gamePromo.href);
+  url.hash = new URLSearchParams({ handoff: ticket }).toString();
+  if (telegram?.openLink) telegram.openLink(url.href);
+  else window.open(url.href, "_blank", "noopener");
 });
 
 productDialog.addEventListener("click", event => {
@@ -379,15 +409,57 @@ cartDialog.addEventListener("click", event => {
       saveCart(); renderCart();
       break;
     }
-    case "checkout": checkout(); break;
+    case "checkout": void checkout(); break;
   }
 });
 
-for (const dialog of [productDialog, cartDialog]) {
+function updateAccountLink() {
+  $("#account-link-label").textContent = account.me
+    ? `${account.me.name} · скидки ${currency(account.me.discount_balance || 0)}`
+    : "Мои скидки и заказы";
+}
+
+async function openAccount() {
+  accountDialog.innerHTML = `<div class="sheet-layout"><div class="sheet-header"><strong>Мой аккаунт</strong><button type="button" class="icon-button" data-action="close" aria-label="Закрыть"><span class="icon icon-x" aria-hidden="true"></span></button></div><div class="sheet-scroll"><p class="account-empty">Загрузка...</p></div></div>`;
+  accountDialog.showModal();
+  document.body.classList.add("modal-open");
+  await accountReady;
+  if (!account.token) {
+    accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">${telegram?.initData ? "Не удалось подключить аккаунт. Закройте окно и откройте меню снова." : "Откройте меню через Telegram-бота, чтобы видеть свои скидки и историю."}</p>`;
+    return;
+  }
+  try {
+    const [me, orders] = await Promise.all([account.refresh(), account.orders()]);
+    updateAccountLink();
+    accountDialog.querySelector(".sheet-scroll").innerHTML = `
+      <div class="account-total"><small>${safe(me.name)} · доступная скидка</small><strong>${currency(me.discount_balance || 0)}</strong></div>
+      <section class="account-section"><h2>Купоны</h2>${me.coupons?.filter(c => !c.redeemed).length
+        ? me.coupons.filter(c => !c.redeemed).map(c => `<div class="account-entry"><span>${safe(c.code)}</span><span>${currency(c.value)}</span></div>`).join("")
+        : `<p class="account-empty">Пока нет купонов</p>`}</section>
+      <section class="account-section"><h2>Демо-заказы</h2>${orders.length
+        ? orders.map(order => `<div class="account-entry"><span>№${safe(order.id.slice(0, 8).toUpperCase())} · ${safe(new Date(order.created_at).toLocaleDateString("ru-RU"))}</span><span>${currency(order.total)}</span></div>`).join("")
+        : `<p class="account-empty">История пока пуста</p>`}</section>`;
+  } catch {
+    accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось загрузить аккаунт. Попробуйте открыть его снова.</p>`;
+  }
+}
+
+$("#account-link").addEventListener("click", () => void openAccount());
+accountDialog.addEventListener("click", event => {
+  if (event.target.closest('[data-action="close"]')) accountDialog.close();
+});
+
+for (const dialog of [productDialog, cartDialog, accountDialog]) {
   dialog.addEventListener("close", () => {
-    if (!productDialog.open && !cartDialog.open) document.body.classList.remove("modal-open");
+    if (!productDialog.open && !cartDialog.open && !accountDialog.open) document.body.classList.remove("modal-open");
   });
 }
+
+const accountReady = account.connect().then(updateAccountLink);
+setInterval(() => { if (account.token) void account.prepareHandoff(); }, 4 * 60_000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && account.token) void account.refresh().then(updateAccountLink).catch(() => {});
+});
 
 renderCategories();
 renderProducts();

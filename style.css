@@ -44,6 +44,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--red); outli
 .category-chip[aria-current="true"] { color: var(--white); background: var(--ink); }
 
 .catalog { padding: 13px 18px 0; }
+.account-link { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 46px; margin: 0 0 12px; padding: 0 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--white); color: var(--ink); font-size: 14px; font-weight: 700; text-align: left; }
+.account-link .icon { width: 16px; height: 16px; color: var(--red); }
+.account-link span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-promo { position: relative; display: flex; align-items: center; min-height: 102px; overflow: hidden; padding: 14px 112px 14px 16px; margin: 0 0 27px; border-radius: 7px; background: #252525; color: var(--white); text-decoration: none; }
 .game-promo:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .game-promo-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
@@ -124,6 +127,14 @@ dialog.sheet::backdrop { background: rgb(0 0 0 / 45%); }
 .order-confirmation .icon { width: 48px; height: 48px; margin: 0 auto; color: var(--red); }
 .order-confirmation h2 { margin: 0; font: 700 27px Georgia, serif; }
 .order-confirmation p { margin: 0; color: var(--muted); line-height: 1.45; }
+.account-total { margin: 0 0 24px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.account-total small { display: block; margin-bottom: 4px; color: var(--muted); font-size: 12px; }
+.account-total strong { color: var(--red); font-size: 30px; }
+.account-section { margin: 20px 0; }
+.account-section h2 { margin: 0 0 10px; font-size: 17px; }
+.account-entry { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.account-entry span:last-child { flex: none; font-weight: 700; }
+.account-empty { color: var(--muted); font-size: 14px; line-height: 1.45; }
 .toast { position: fixed; z-index: 20; left: 50%; bottom: max(80px, calc(env(safe-area-inset-bottom) + 75px)); transform: translate(-50%, 10px); min-width: 160px; max-width: calc(100vw - 40px); padding: 10px 15px; border-radius: 7px; background: var(--ink); color: var(--white); font-size: 13px; text-align: center; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; }
 .toast.visible { transform: translate(-50%, 0); opacity: 1; }
 
