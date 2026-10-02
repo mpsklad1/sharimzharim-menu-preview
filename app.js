@@ -1,4 +1,4 @@
-import { categories, popularIds, products, optionGroupsFor, optionsFor, imageFor } from "./menu-data.js";
+import { categories, products, optionGroupsFor, optionsFor, imageFor } from "./menu-data.js";
 import { MenuAccount } from "./account.js";
 
 const telegram = window.Telegram?.WebApp;
@@ -20,8 +20,10 @@ const productDialog = $("#product-dialog");
 const cartDialog = $("#cart-dialog");
 const accountDialog = $("#account-dialog");
 const gamePromo = $("#game-promo");
+const gameView = $("#game-view");
+const gameFrame = $("#game-frame");
 const account = new MenuAccount(telegram);
-let category = "Хиты";
+let category = categories[0];
 let cart = loadCart();
 let selectedProduct = null;
 let selectedOptions = new Set();
@@ -106,9 +108,8 @@ function renderProducts() {
     return;
   }
   menuSections.innerHTML = categories.map((name, index) => {
-    const items = name === "Хиты"
-      ? products.filter(product => popularIds.has(product.id))
-      : products.filter(product => product.category === name);
+    const itemCategory = name === "Бургеры" ? "На булке" : name;
+    const items = products.filter(product => product.category === itemCategory);
     return `<section class="menu-section" id="menu-section-${index}" aria-labelledby="menu-heading-${index}">
       <h1 id="menu-heading-${index}">${safe(name)}</h1>
       <div class="product-grid">${renderProductCards(items)}</div>
@@ -289,8 +290,12 @@ function openCart() {
 }
 
 async function checkout() {
+  const checkoutButton = cartDialog.querySelector('[data-action="checkout"]');
+  if (checkoutButton?.disabled) return;
+  if (checkoutButton) checkoutButton.disabled = true;
   if (telegram?.initData && !account.token) {
     showToast("Не удалось войти. Демо-заказ не сохранён");
+    if (checkoutButton) checkoutButton.disabled = false;
     return;
   }
   let number = String(Math.floor(80000 + Math.random() * 10000));
@@ -307,6 +312,7 @@ async function checkout() {
       number = order.id.slice(0, 8).toUpperCase();
     } catch {
       showToast("Не удалось сохранить демо-заказ");
+      if (checkoutButton) checkoutButton.disabled = false;
       return;
     }
   }
@@ -354,6 +360,16 @@ menuSections.addEventListener("click", event => {
 });
 $("#header-cart").addEventListener("click", openCart);
 $("#cart-bar").addEventListener("click", openCart);
+function closeGame() {
+  if (gameView.hidden) return;
+  gameView.hidden = true;
+  gameFrame.src = "about:blank";
+  document.body.classList.remove("game-open");
+  telegram?.BackButton?.hide?.();
+  refreshAccountAfterReturn();
+  gamePromo.focus();
+}
+
 gamePromo.addEventListener("click", event => {
   event.preventDefault();
   const ticket = account.takeHandoff();
@@ -363,8 +379,18 @@ gamePromo.addEventListener("click", event => {
   }
   const url = new URL(gamePromo.href);
   url.hash = new URLSearchParams({ handoff: ticket }).toString();
-  if (telegram?.openLink) telegram.openLink(url.href);
-  else window.open(url.href, "_blank", "noopener");
+  gameFrame.src = url.href;
+  gameView.hidden = false;
+  document.body.classList.add("game-open");
+  telegram?.BackButton?.show?.();
+  $("#game-back").focus();
+});
+$("#game-back").addEventListener("click", closeGame);
+telegram?.BackButton?.onClick?.(closeGame);
+window.addEventListener("message", event => {
+  if (event.source !== gameFrame.contentWindow || event.origin !== location.origin) return;
+  if (event.data?.type === "sharim:close-game") closeGame();
+  if (event.data?.type === "sharim:game-finished") refreshAccountAfterReturn();
 });
 
 productDialog.addEventListener("click", event => {

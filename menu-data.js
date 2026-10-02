@@ -1,5 +1,4 @@
-export const categories = ["Хиты", "Шаверма", "На булке", "В листьях", "Курица", "Фритюр", "Закуски"];
-export const popularIds = new Set([1, 2, 3, 5, 12, 26, 29, 30, 34]);
+export const categories = ["Шаверма", "Бургеры", "В листьях", "Курица", "Фритюр", "Закуски"];
 
 const item = (id, name, description, weight, price, image, category) =>
   ({ id, name, description, weight, price, image, category });

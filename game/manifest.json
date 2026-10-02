@@ -1,0 +1,11 @@
+{
+  "name": "Шарим-Жарим",
+  "short_name": "Шарим-Жарим",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [{ "src": "icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }]
+}
