@@ -1,6 +1,5 @@
 import { imageFor } from "./menu-data.js";
-import { MenuAccount } from "./account.js";
-import { API_BASE } from "./account.js";
+import { MenuAccount, API_BASE } from "./account.js?v=20261002-shared";
 
 // No separate local catalog: website and Mini App read the same database.
 let categories = [];
