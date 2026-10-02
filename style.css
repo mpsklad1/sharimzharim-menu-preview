@@ -24,6 +24,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--red); outli
 .icon-minus { --icon: url("./assets/icons/minus.svg"); }
 .icon-x { --icon: url("./assets/icons/x.svg"); }
 .icon-back { --icon: url("./assets/icons/arrow-left.svg"); }
+.icon-promo-arrow { --icon: url("./assets/icons/arrow-left.svg"); transform: rotate(180deg); }
 .icon-check { --icon: url("./assets/icons/check.svg"); }
 .icon-trash { --icon: url("./assets/icons/trash-2.svg"); }
 
@@ -43,6 +44,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--red); outli
 .category-chip[aria-current="true"] { color: var(--white); background: var(--ink); }
 
 .catalog { padding: 13px 18px 0; }
+.game-promo { position: relative; display: flex; align-items: center; min-height: 102px; overflow: hidden; padding: 14px 112px 14px 16px; margin: 0 0 27px; border-radius: 7px; background: #252525; color: var(--white); text-decoration: none; }
+.game-promo:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.game-promo-copy { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.game-promo-kicker { color: #d1ec55; font-size: 10px; font-weight: 800; line-height: 1.1; }
+.game-promo strong { font-size: 22px; line-height: 1.1; }
+.game-promo-image { position: absolute; right: 13px; bottom: -13px; width: 105px; height: 105px; object-fit: contain; }
+.game-promo .icon-promo-arrow { position: absolute; top: 11px; right: 11px; width: 16px; height: 16px; }
+.game-promo:hover .game-promo-image { transform: translateY(-3px); }
 .menu-section + .menu-section { margin-top: 38px; }
 .menu-section h1 { margin: 4px 0 20px; font: 400 30px/1.1 Georgia, "Times New Roman", serif; }
 .product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }

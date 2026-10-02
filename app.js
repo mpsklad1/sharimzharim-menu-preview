@@ -17,6 +17,7 @@ const appHeader = $(".app-header");
 const search = $("#menu-search");
 const productDialog = $("#product-dialog");
 const cartDialog = $("#cart-dialog");
+const gamePromo = $("#game-promo");
 let category = "Хиты";
 let cart = loadCart();
 let selectedProduct = null;
@@ -330,6 +331,11 @@ menuSections.addEventListener("click", event => {
 });
 $("#header-cart").addEventListener("click", openCart);
 $("#cart-bar").addEventListener("click", openCart);
+gamePromo.addEventListener("click", event => {
+  if (!telegram?.openLink) return;
+  event.preventDefault();
+  telegram.openLink(gamePromo.href);
+});
 
 productDialog.addEventListener("click", event => {
   const button = event.target.closest("[data-action]");
