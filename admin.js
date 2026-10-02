@@ -1,4 +1,4 @@
-import {MenuAccount,API_BASE} from './account.js';
+import {MenuAccount,API_BASE} from './account.js?v=20261002-shared';
 import {imageFor} from './menu-data.js';
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

@@ -375,9 +375,9 @@ function renderCart() {
             </div>
             <div class="cart-line-actions"><button type="button" data-action="line-decrease" data-index="${index}" aria-label="Уменьшить количество ${safe(product.name)}"><span class="icon icon-minus" aria-hidden="true"></span></button><strong>${line.count}</strong><button type="button" data-action="line-increase" data-index="${index}" aria-label="Увеличить количество ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button></div>
           </div>`;
-        }).join("") + `<p class="cart-note">${account.token ? "Демо-заказ сохранится в истории аккаунта. " : "Демо-заказ сохранится только на этом устройстве. "}Оплата и отправка в ресторан не выполняются.${account.me?.discount_balance ? ` Доступная скидка: ${currency(account.me.discount_balance)}.` : ""}</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
+        }).join("") + `<p class="cart-note">${account.token ? "Демо-заказ сохранится в общей истории аккаунта. " : "Для сохранения в общей истории войдите через Telegram. "}Оплата и отправка в ресторан не выполняются.${account.me?.discount_balance ? ` Доступная скидка: ${currency(account.me.discount_balance)}.` : ""}</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
       </div>
-      ${hasItems ? `<div class="sheet-footer"><div class="cart-summary"><small>Итого</small><strong>${currency(cartTotal())}</strong></div><button type="button" class="primary-button" data-action="checkout">Оформить демо-заказ</button></div>` : ""}
+      ${hasItems ? `<div class="sheet-footer"><div class="cart-summary"><small>Итого</small><strong>${currency(cartTotal())}</strong></div><button type="button" class="primary-button" data-action="checkout">${account.token ? "Оформить демо-заказ" : "Войти и сохранить демо-заказ"}</button></div>` : ""}
     </div>`;
 }
 
