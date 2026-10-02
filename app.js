@@ -120,6 +120,7 @@ function renderProductCards(items) {
       </button>
       <div class="product-name">${safe(product.name)}</div>
       <p class="product-weight">${safe(product.weight)}</p>
+      ${isBurger(product) ? `<button type="button" class="product-card-reviews" data-open="${product.id}" aria-label="Отзывы о ${safe(product.name)}">★ <span>Оценки и отзывы</span></button>` : ""}
       <div class="product-bottom">
         <span class="product-price">${product.id === 30 ? "от " + currency(Math.min(product.price,...product.variants.map(v=>v.price))) : currency(product.price)}</span>
         <button type="button" class="product-add" data-open="${product.id}" aria-label="Настроить ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button>
@@ -227,6 +228,12 @@ function openProduct(id) {
             <button type="button" data-action="size" data-xl="true" aria-pressed="false">XL · 500 г</button>
           </div>
           <p class="portion-price" id="size-price">Стандарт · ${currency(product.price)}</p>` : ""}
+        ${isBurger(product) ? `<section class="product-reviews" id="product-reviews" data-product-id="${product.id}">
+          <div class="section-heading"><h2>Оценки и отзывы</h2></div>
+          <div class="review-overview account-empty">Загрузка отзывов...</div>
+          <div class="review-list"></div>
+          <div class="review-editor"></div>
+        </section>` : ""}
         ${groups.map(group => `
           <div class="section-heading"><h2>${safe(group.title)}</h2><span>Выберите до ${group.limit}</span></div>
           <div class="option-list">${group.options.map(option => `
@@ -234,12 +241,6 @@ function openProduct(id) {
               <span><span class="option-name">${safe(option[1])}</span><span class="option-price">${optionPrice(option)}</span></span>
               <span class="option-check"><span class="icon icon-check" aria-hidden="true"></span></span>
             </button>`).join("")}</div>`).join("")}
-        ${isBurger(product) ? `<section class="product-reviews" id="product-reviews" data-product-id="${product.id}">
-          <div class="section-heading"><h2>Оценки и отзывы</h2></div>
-          <div class="review-overview account-empty">Загрузка отзывов...</div>
-          <div class="review-list"></div>
-          <div class="review-editor"></div>
-        </section>` : ""}
       </div>
       <div class="sheet-footer">
         <div class="quantity-stepper" aria-label="Количество">
