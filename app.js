@@ -379,6 +379,8 @@ gamePromo.addEventListener("click", event => {
   }
   const url = new URL(gamePromo.href);
   url.hash = new URLSearchParams({ handoff: ticket }).toString();
+  clearTimeout(toastTimer);
+  $("#toast").classList.remove("visible");
   gameFrame.src = url.href;
   gameView.hidden = false;
   document.body.classList.add("game-open");
