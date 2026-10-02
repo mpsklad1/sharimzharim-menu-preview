@@ -45,7 +45,9 @@ export class ManagerAccount {
       else if (response.status === 409) message = 'Данные уже изменились. Обновите страницу и повторите действие.';
       else if (response.status === 400 && path === '/auth/manager/password') message = 'Новый пароль должен отличаться от текущего и содержать от 12 символов (до 128 байт).';
       else message = `Не удалось выполнить действие (код ${response.status}).`;
-      throw new Error(message);
+      const error = new Error(message);
+      error.status = response.status;
+      throw error;
     }
     return response.json();
   }

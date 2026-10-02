@@ -1,15 +1,68 @@
 import {API_BASE} from './account.js?v=20261002-shared';
-import {ManagerAccount} from './manager-account.js?v=20261002-password';
+import {ManagerAccount} from './manager-account.js?v=20261002-switch';
+import {ProductAvailability,isProductEnabled} from './product-availability.js?v=20261002-switch';
 import {imageFor} from './menu-data.js';
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>new Intl.NumberFormat('ru-RU').format(v||0)+' ₽';
 const date=v=>v?new Date(v).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'}):'—';
 const account=new ManagerAccount();
-let data=null,view='overview',editing=null,refreshing=false;
+const availability=new ProductAvailability(account);
+let data=null,view='overview',editing=null,refreshing=false,catalogRevision=0;
+let messageTimer=null;
 const titles={overview:'Обзор',products:'Меню и товары',orders:'Заказы',customers:'Клиенты CRM',carts:'Корзины',analytics:'Аналитика',integrations:'Касса и рассылки'};
 const status={active:'В продаже',out:'Нет в наличии',draft:'Черновик',archived:'Архив'};
-function message(text){$('#message').textContent=text;setTimeout(()=>$('#message').textContent='',6000);}
+function message(text){clearTimeout(messageTimer);$('#message').textContent=text;messageTimer=setTimeout(()=>$('#message').textContent='',6000);}
+function productSwitch(p){
+  const pending=availability.pending.get(p.id);
+  const enabled=pending?.enabled??isProductEnabled(p);
+  const detail=!enabled&&['draft','archived'].includes(p.status)?`<small>${status[p.status]}</small>`:'';
+  return `<div class="availability-cell"><button type="button" class="availability-switch" role="switch" aria-checked="${enabled}" aria-label="В меню: ${esc(p.name)}" aria-busy="${!!pending}" data-toggle-product="${p.id}" ${pending?'disabled':''} title="${enabled?'Выключить':'Включить'} товар в меню"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span class="switch-label">${pending?'Сохраняю…':enabled?'Включён':'Выключен'}</span></button><span class="availability-detail">${detail}</span></div>`;
+}
+function syncProductSwitch(id){
+  const entry=data?.products.find(p=>p.product.id===id);
+  const button=document.querySelector(`[data-toggle-product="${id}"]`);
+  if(!entry||!button)return;
+  const pending=availability.pending.get(id);
+  const enabled=pending?.enabled??isProductEnabled(entry.product);
+  button.setAttribute('aria-checked',String(enabled));
+  button.setAttribute('aria-busy',String(!!pending));
+  button.disabled=!!pending;
+  button.title=`${enabled?'Выключить':'Включить'} товар в меню`;
+  button.querySelector('.switch-label').textContent=pending?'Сохраняю…':enabled?'Включён':'Выключен';
+  button.closest('.availability-cell').querySelector('.availability-detail').textContent=!enabled&&['draft','archived'].includes(entry.product.status)?status[entry.product.status]:'';
+  const edit=document.querySelector(`[data-edit="${id}"]`);if(edit)edit.disabled=!!pending;
+}
+async function toggleProduct(id,enabled){
+  const entry=data?.products.find(p=>p.product.id===id);
+  if(!entry||availability.pending.has(id))return;
+  const next=enabled??!isProductEnabled(entry.product);
+  if(next===isProductEnabled(entry.product))return;
+  const requestToken=account.token;
+  const button=document.querySelector(`[data-toggle-product="${id}"]`);
+  const keepFocus=document.activeElement===button;
+  catalogRevision++;
+  const save=availability.set(entry,next);
+  syncProductSwitch(id);
+  try{
+    const saved=await save;
+    if(account.token!==requestToken||!data)return;
+    const index=data.products.findIndex(p=>p.product.id===id);
+    if(index>=0)data.products[index]=saved;
+    message(`${saved.product.name}: ${next?'включён в меню':'выключен из меню'}`);
+    $('#sync-status').textContent=`Общая база · сохранено ${date(new Date().toISOString())}`;
+  }catch(e){
+    if(account.token!==requestToken){showLogin();return;}
+    message(`Не удалось изменить доступность. ${e.message}`);
+    // Never retry a stale write automatically: another operator may have edited it.
+    if(e.status===409)await refresh();
+  }finally{
+    catalogRevision++;
+    syncProductSwitch(id);
+    const current=document.querySelector(`[data-toggle-product="${id}"]`);
+    if(keepFocus&&current&&(document.activeElement===document.body||document.activeElement===button))current.focus({preventScroll:true});
+  }
+}
 function photo(p){
   if(p.image_url?.startsWith(`${API_BASE}/catalog/images/`))return `<span class="photo" style="background-image:url('${esc(p.image_url)}');background-size:cover;background-position:center"></span>`;
   const [name,cols,rows,pos]=imageFor(p.image);
@@ -24,7 +77,7 @@ function render(){
   document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===view));
   const s=data.stats;let html='';
   if(view==='overview')html=`<div class="cards">${[['Клиенты',s.customers,'Общие аккаунты сайта и Mini App'],['Контакты бота',s.bot_contacts,'Учёт новых обращений с момента подключения'],['Демо-заказы сегодня',s.demo_orders_today,'За сутки по московскому времени'],['Реальная выручка',money(s.revenue),'Касса ещё не подключена'],['Демо-заказы всего',s.demo_orders,'Это не реальные продажи'],['Сумма демо-заказов',money(s.demo_total),'Без списания денег'],['Брошенные корзины',s.abandoned_carts,'Без изменений больше 30 минут'],['Товары в продаже',data.products.filter(p=>p.product.status==='active').length,'Общий каталог']].map(([label,value,note])=>`<div class="card">${label}<strong>${value}</strong><small>${note}</small></div>`).join('')}</div><div class="spark">Изменения меню сохраняются в общей базе и появляются при следующей загрузке меню. Заказы, корзины и аккаунты сайта и Telegram учитываются вместе.</div><h2 style="margin-top:28px">Последние демо-заказы</h2>${table(['Заказ','Клиент / канал','Состав','Сумма','Статус'],orderRows(data.orders.slice(0,8)))}`;
-  if(view==='products')html=`<div class="toolbar"><input type="search" id="filter" placeholder="Поиск по меню"><button class="primary" id="add-product">Добавить товар</button></div><div id="table-area"></div>`;
+  if(view==='products')html=`<div class="toolbar"><input type="search" id="filter" placeholder="Поиск по меню"><button class="primary" id="add-product">Добавить товар</button></div><p class="availability-hint">Вправо — товар включён, влево — выключен. Сохраняется сразу для сайта и бота, без удаления товара.</p><div id="table-area"></div>`;
   if(view==='orders')html=`<p class="muted">Показаны последние ${data.orders.length} заказов, максимум ${data.limits.orders}. Все существующие заказы — демо.</p>${table(['Заказ','Клиент / канал','Состав','Сумма','Статус'],orderRows(data.orders))}`;
   if(view==='customers')html=`<div class="toolbar"><input type="search" id="filter" placeholder="Имя или Telegram"></div><p class="muted">Показаны последние ${data.customers.length} аккаунтов, максимум ${data.limits.customers}.</p><div id="table-area"></div>`;
   if(view==='carts')html=`<p class="muted">Только сохранённые корзины вошедших клиентов. Гостевые корзины нельзя привязать к Telegram. После демо-заказа корзина очищается.</p>${table(['Клиент','Товары','Сумма','Активность','Состояние'],data.carts.map(c=>`<tr><td><button data-customer="${c.user_id}">${esc(c.name)}</button></td><td>${c.items.map(i=>`${esc(i.name)} × ${i.count}`).join('<br>')}</td><td>${money(c.total)}</td><td>${date(c.updated_at)}<small>${c.source==='telegram'?'Telegram':'Сайт'}</small></td><td><span class="badge">${c.abandoned?'Брошена · >30 мин':'Активная'}</span></td></tr>`))}`;
@@ -38,11 +91,11 @@ function render(){
   $('#add-product')?.addEventListener('click',()=>editProduct(null));
 }
 function renderFiltered(){const q=($('#filter')?.value||'').toLocaleLowerCase('ru-RU');
-  if(view==='products')$('#table-area').innerHTML=table(['Товар','Категория','Цена','Статус',''],data.products.filter(({product:p})=>`${p.name} ${p.category}`.toLowerCase().includes(q)).map(({product:p})=>`<tr><td><div class="product-cell">${photo(p)}<div>${esc(p.name)}<small>${esc(p.weight)}</small></div></div></td><td>${esc(p.category==='На булке'?'Бургеры':p.category)}</td><td>${money(p.price)}</td><td><span class="badge">${status[p.status]}</span></td><td><button data-edit="${p.id}">Изменить</button></td></tr>`));
+  if(view==='products')$('#table-area').innerHTML=table(['Товар','Категория','Цена','В меню',''],data.products.filter(({product:p})=>`${p.name} ${p.category}`.toLowerCase().includes(q)).map(({product:p})=>`<tr><td><div class="product-cell">${photo(p)}<div>${esc(p.name)}<small>${esc(p.weight)}</small></div></div></td><td>${esc(p.category==='На булке'?'Бургеры':p.category)}</td><td>${money(p.price)}</td><td>${productSwitch(p)}</td><td><button data-edit="${p.id}" ${availability.pending.has(p.id)?'disabled':''}>Изменить</button></td></tr>`));
   if(view==='customers')$('#table-area').innerHTML=table(['Клиент','Telegram','Демо-заказы','Демо-сумма','Скидки'],data.customers.filter(c=>`${c.name} ${c.username||''} ${c.tg_id}`.toLowerCase().includes(q)).map(c=>`<tr><td><button data-customer="${c.id}">${esc(c.name)}</button><small>${date(c.created_at)}</small></td><td>${c.username?'@'+esc(c.username):esc(c.tg_id)}<small>${c.bot_contact?'Есть контакт с ботом':'Только аккаунт'}</small></td><td>${c.demo_order_count}</td><td>${money(c.demo_order_total)}</td><td>${money(c.discount_balance)}</td></tr>`));
 }
-async function refresh(){if(refreshing)return;refreshing=true;$('#refresh').disabled=true;const requestToken=account.token;
-  try{if(account.me?.must_change_password){showPasswordChange();return;}const snapshot=await account.request('/manage/snapshot');if(account.token!==requestToken)return;data=snapshot;$('#login').hidden=true;$('#password-change').hidden=true;$('#content').hidden=false;$('#identity').textContent=account.me?.name||'Владелец';$('#logout').hidden=false;$('#change-password').hidden=false;render();$('#sync-status').textContent=`Общая база · обновлено ${date(data.generated_at)}`;}
+async function refresh(){if(refreshing||availability.pending.size)return;refreshing=true;$('#refresh').disabled=true;const requestToken=account.token,requestRevision=catalogRevision;
+  try{if(account.me?.must_change_password){showPasswordChange();return;}const snapshot=await account.request('/manage/snapshot');if(account.token!==requestToken||catalogRevision!==requestRevision)return;const query=$('#filter')?.value||'';data=snapshot;$('#login').hidden=true;$('#password-change').hidden=true;$('#content').hidden=false;$('#identity').textContent=account.me?.name||'Владелец';$('#logout').hidden=false;$('#change-password').hidden=false;render();if($('#filter')){$('#filter').value=query;renderFiltered();}$('#sync-status').textContent=`Общая база · обновлено ${date(data.generated_at)}`;}
   catch(e){showLogin();$('#login-error').textContent=e.message;}
   finally{refreshing=false;$('#refresh').disabled=false;}
 }
@@ -58,7 +111,8 @@ $('#product-form').addEventListener('submit',async event=>{event.preventDefault(
 });
 $('#archive').addEventListener('click',()=>{if(!confirm('Убрать товар из меню? Он останется в архиве и старых заказах.'))return;$('#product-form').elements.status.value='archived';$('#product-form').requestSubmit();});
 function showCustomer(id){const c=data.customers.find(c=>c.id===id);if(!c){message('Клиент не входит в текущие 1000 карточек');return;}const orders=data.orders.filter(o=>o.user_id===id);const cart=data.carts.find(c=>c.user_id===id);$('#customer-content').innerHTML=`<h2>${esc(c.name)}</h2><p>${c.username?'@'+esc(c.username):'Без username'} · Telegram ID ${esc(c.tg_id)}</p><p class="muted">Первое обращение: ${date(c.created_at)}<br>Последняя активность аккаунта: ${date(c.updated_at)}</p><div class="cards"><div class="card">Демо-заказы<strong>${c.demo_order_count}</strong></div><div class="card">Демо-сумма<strong>${money(c.demo_order_total)}</strong></div><div class="card">Скидка<strong>${money(c.discount_balance)}</strong></div></div><div class="profile-history"><h2>Текущая корзина</h2>${cart?cart.items.map(i=>`<p>${esc(i.name)} × ${i.count}</p>`).join(''):'Корзина пуста'}<h2 style="margin-top:25px">История демо-заказов</h2><p class="muted">Из последних 500 заказов системы.</p>${table(['Заказ','Клиент / канал','Состав','Сумма','Статус'],orderRows(orders))}</div>`;$('#customer').showModal();}
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.view){view=b.dataset.view;render();}if(b.dataset.edit)editProduct(Number(b.dataset.edit));if(b.dataset.customer)showCustomer(Number(b.dataset.customer));if(b.hasAttribute('data-close'))b.closest('dialog').close();});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.toggleProduct){b.dataset.instant=String(e.detail===0);void toggleProduct(Number(b.dataset.toggleProduct));return;}if(b.dataset.view){view=b.dataset.view;render();}if(b.dataset.edit&&!availability.pending.has(Number(b.dataset.edit)))editProduct(Number(b.dataset.edit));if(b.dataset.customer)showCustomer(Number(b.dataset.customer));if(b.hasAttribute('data-close'))b.closest('dialog').close();});
+document.addEventListener('keydown',e=>{const b=e.target.closest('[data-toggle-product]');if(!b||b.disabled)return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();b.dataset.instant='true';void toggleProduct(Number(b.dataset.toggleProduct),e.key==='ArrowRight');}});
 $('#refresh').addEventListener('click',refresh);
 $('#change-password').addEventListener('click',showPasswordChange);
 $('#password-cancel').addEventListener('click',()=>{$('#password-form').reset();void refresh();});
