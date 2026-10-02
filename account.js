@@ -1,4 +1,9 @@
-const API_BASE = "https://sharim.176-222-53-108.sslip.io/api";
+export const API_BASE = "https://sharim.176-222-53-108.sslip.io/api";
+const TOKEN_KEY = "sharimzharim-site-token";
+
+function savedToken() {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
 
 export class MenuAccount {
   constructor(telegram) {
@@ -8,6 +13,21 @@ export class MenuAccount {
     this.error = null;
     this.handoffTicket = null;
     this.handoffIssuedAt = 0;
+    this.siteLogin = null;
+  }
+
+  setToken(token) {
+    this.token = token;
+    try {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch { /* private browsing */ }
+  }
+
+  logout() {
+    this.setToken(null);
+    this.me = null;
+    this.handoffTicket = null;
   }
 
   async request(path, method = "GET", body, authenticated = true) {
@@ -21,24 +41,58 @@ export class MenuAccount {
       method, headers, body: body === undefined ? undefined : JSON.stringify(body)
     });
     if (response.status === 401 && authenticated) {
-      this.token = null;
-      this.me = null;
+      this.logout();
     }
     if (!response.ok) throw new Error(`Сервер ответил ${response.status}`);
     return response.json();
   }
 
   async connect() {
-    if (!this.telegram?.initData) return;
     try {
-      const result = await this.request("/auth/webapp", "POST", { init_data: this.telegram.initData }, false);
-      this.token = result.token;
+      if (this.telegram?.initData) {
+        const result = await this.request("/auth/webapp", "POST", { init_data: this.telegram.initData }, false);
+        this.setToken(result.token);
+      } else {
+        this.token = savedToken();
+      }
+      if (!this.token) return;
       await this.refresh();
       this.error = null;
       void this.prepareHandoff();
     } catch (error) {
       this.error = error;
+      this.logout();
     }
+  }
+
+  async startSiteLogin() {
+    if (this.siteLogin && Date.now() - this.siteLogin.createdAt < 9 * 60_000) return this.siteLogin;
+    const result = await this.request("/auth/site/start", "POST", {}, false);
+    this.siteLogin = {
+      challenge: result.challenge,
+      pollSecret: result.poll_secret,
+      url: `https://t.me/SharimZharimbot?start=login_${result.challenge}`,
+      code: result.challenge.slice(0, 6).toUpperCase(),
+      createdAt: Date.now()
+    };
+    return this.siteLogin;
+  }
+
+  async pollSiteLogin() {
+    if (!this.siteLogin) return "expired";
+    const result = await this.request("/auth/site/poll", "POST", {
+      challenge: this.siteLogin.challenge,
+      poll_secret: this.siteLogin.pollSecret
+    }, false);
+    if (result.status === "ready") {
+      this.setToken(result.token);
+      this.siteLogin = null;
+      await this.refresh();
+      void this.prepareHandoff();
+    } else if (result.status === "expired") {
+      this.siteLogin = null;
+    }
+    return result.status;
   }
 
   async refresh() {
@@ -72,7 +126,29 @@ export class MenuAccount {
     return this.request("/orders");
   }
 
-  async saveDemoOrder(items) {
-    return this.request("/orders/demo", "POST", { items });
+  async saveDemoOrder(items, requestId) {
+    return this.request("/orders/demo", "POST", { items, request_id: requestId,
+      source: this.telegram?.initData ? "telegram" : "site" });
+  }
+
+  async saveCart(items) {
+    return this.request("/cart", "POST", { items,
+      source: this.telegram?.initData ? "telegram" : "site" });
+  }
+
+  async productReviews(productId) {
+    return this.request(`/products/${productId}/reviews`, "GET", undefined, false);
+  }
+
+  async myProductReview(productId) {
+    return this.request(`/products/${productId}/reviews/mine`);
+  }
+
+  async saveProductReview(productId, review) {
+    return this.request(`/products/${productId}/reviews`, "POST", review);
+  }
+
+  async myReviews() {
+    return this.request("/reviews/mine");
   }
 }

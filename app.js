@@ -1,5 +1,12 @@
-import { categories, products, optionGroupsFor, optionsFor, imageFor } from "./menu-data.js";
+import { imageFor } from "./menu-data.js";
 import { MenuAccount } from "./account.js";
+import { API_BASE } from "./account.js";
+
+// No separate local catalog: website and Mini App read the same database.
+let categories = [];
+let products = [];
+const optionGroupsFor = product => product.option_groups || [];
+const optionsFor = product => optionGroupsFor(product).flatMap(group => group.options);
 
 const telegram = window.Telegram?.WebApp;
 telegram?.ready();
@@ -23,7 +30,7 @@ const gamePromo = $("#game-promo");
 const gameView = $("#game-view");
 const gameFrame = $("#game-frame");
 const account = new MenuAccount(telegram);
-let category = categories[0];
+let category = "Шаверма";
 let cart = loadCart();
 let selectedProduct = null;
 let selectedOptions = new Set();
@@ -31,6 +38,24 @@ let quantity = 1;
 let halfPortion = false;
 let xlPortion = false;
 let toastTimer;
+let reviewProductAfterLogin = null;
+let catalogReady = false;
+let cartSaveTimer;
+let cartRequest = Promise.resolve();
+let checkoutRequestId = null;
+try {checkoutRequestId=localStorage.getItem("sharimzharim-checkout-id");}catch{}
+
+function selectionLines() {
+  return cart.map(line => ({item_id:line.itemId,count:line.count,option_ids:line.optionIds,
+    variant:line.half ? "half" : line.xl ? "xl" : null}));
+}
+
+function queueCartSave() {
+  if (!account.token || !catalogReady) return;
+  const items=selectionLines();
+  cartRequest=cartRequest.catch(()=>{}).then(()=>account.saveCart(items));
+  void cartRequest.catch(()=>showToast("Корзина пока не синхронизирована. Проверьте соединение"));
+}
 
 function loadCart() {
   try {
@@ -51,11 +76,18 @@ function loadCart() {
 }
 
 function saveCart() {
+  checkoutRequestId = null;
+  try {localStorage.removeItem("sharimzharim-checkout-id");}catch{}
   try { localStorage.setItem("sharimzharim-cart", JSON.stringify(cart)); } catch { /* private browsing */ }
   renderCartButton();
+  clearTimeout(cartSaveTimer);
+  cartSaveTimer=setTimeout(queueCartSave,500);
 }
 
 function photoStyle(index) {
+  if (typeof index === "string" && index.startsWith(`${API_BASE}/catalog/images/`)) {
+    return `style="background-image:url('${safe(index)}');--background-size:cover;--background-position:center"`;
+  }
   const [name, columns, rows, position] = imageFor(index);
   const x = columns === 1 ? 0 : (position % columns) * 100 / (columns - 1);
   const y = rows === 1 ? 0 : Math.floor(position / columns) * 100 / (rows - 1);
@@ -85,12 +117,12 @@ function renderProductCards(items) {
   return items.map(product => `
     <article class="product-card">
       <button type="button" class="product-photo-button" data-open="${product.id}" aria-label="Открыть ${safe(product.name)}">
-        <span class="product-photo" ${photoStyle(product.image)}></span>
+        <span class="product-photo" ${photoStyle(product.image_url || product.image)}></span>
       </button>
       <div class="product-name">${safe(product.name)}</div>
       <p class="product-weight">${safe(product.weight)}</p>
       <div class="product-bottom">
-        <span class="product-price">${product.id === 30 ? "от " + currency(690) : currency(product.price)}</span>
+        <span class="product-price">${product.id === 30 ? "от " + currency(Math.min(product.price,...product.variants.map(v=>v.price))) : currency(product.price)}</span>
         <button type="button" class="product-add" data-open="${product.id}" aria-label="Настроить ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button>
       </div>
     </article>`).join("");
@@ -131,8 +163,8 @@ function syncActiveCategory() {
 
 function optionPrice(option) { return option[2] ? `+${currency(option[2])}` : "Бесплатно"; }
 function unitBasePrice(product, half = false, xl = false) {
-  if (product.id === 30 && half) return 690;
-  if (product.id === 34 && xl) return product.price + 180;
+  if (product.id === 30 && half) return product.variants.find(v=>v.id==="half")?.price ?? product.price;
+  if (product.id === 34 && xl) return product.variants.find(v=>v.id==="xl")?.price ?? product.price;
   return product.price;
 }
 function portionWeight(product, half = false, xl = false) {
@@ -149,6 +181,21 @@ function selectedPrice() {
     .reduce((sum, option) => sum + option[2], 0);
 }
 
+function isBurger(product) {
+  return product.category === "На булке" || product.category === "В листьях";
+}
+
+function stars(rating) {
+  const filled = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return `<span class="review-stars" aria-label="Оценка ${filled} из 5">${"★".repeat(filled)}${"☆".repeat(5 - filled)}</span>`;
+}
+
+function reviewCount(count) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  return `${count} ${lastTwo >= 11 && lastTwo <= 14 ? "отзывов" : last === 1 ? "отзыв" : last >= 2 && last <= 4 ? "отзыва" : "отзывов"}`;
+}
+
 function openProduct(id) {
   const product = byId.get(id);
   if (!product) return;
@@ -162,9 +209,10 @@ function openProduct(id) {
     <div class="sheet-layout">
       <div class="sheet-header"><strong>Состав блюда</strong><button type="button" class="icon-button" data-action="close" aria-label="Закрыть"><span class="icon icon-x" aria-hidden="true"></span></button></div>
       <div class="sheet-scroll">
-        <div class="sheet-photo" role="img" aria-label="${safe(product.name)}" ${photoStyle(product.image)}></div>
+        <div class="sheet-photo" role="img" aria-label="${safe(product.name)}" ${photoStyle(product.image_url || product.image)}></div>
         <h2 class="sheet-title">${safe(product.name)}</h2>
         <p class="sheet-weight" id="detail-weight">${safe(product.weight)}</p>
+        ${isBurger(product) ? `<button type="button" class="product-rating-top" data-action="show-reviews" aria-label="Перейти к отзывам">★ <span>Оценки и отзывы</span></button>` : ""}
         <p class="sheet-description">${safe(product.description)}</p>
         ${product.id === 30 ? `
           <div class="section-heading"><h2>Порция</h2></div>
@@ -187,6 +235,12 @@ function openProduct(id) {
               <span><span class="option-name">${safe(option[1])}</span><span class="option-price">${optionPrice(option)}</span></span>
               <span class="option-check"><span class="icon icon-check" aria-hidden="true"></span></span>
             </button>`).join("")}</div>`).join("")}
+        ${isBurger(product) ? `<section class="product-reviews" id="product-reviews" data-product-id="${product.id}">
+          <div class="section-heading"><h2>Оценки и отзывы</h2></div>
+          <div class="review-overview account-empty">Загрузка отзывов...</div>
+          <div class="review-list"></div>
+          <div class="review-editor"></div>
+        </section>` : ""}
       </div>
       <div class="sheet-footer">
         <div class="quantity-stepper" aria-label="Количество">
@@ -199,6 +253,51 @@ function openProduct(id) {
     </div>`;
   productDialog.showModal();
   document.body.classList.add("modal-open");
+  if (isBurger(product)) void loadProductReviews(product.id);
+}
+
+async function loadProductReviews(productId) {
+  const root = productDialog.querySelector(`#product-reviews[data-product-id="${productId}"]`);
+  if (!root) return;
+  const current = () => root.isConnected && root.dataset.productId === String(productId);
+  try {
+    const data = await account.productReviews(productId);
+    if (!current()) return;
+    root.querySelector(".review-overview").innerHTML = data.count
+      ? `${stars(data.average)} <strong>${Number(data.average).toFixed(1).replace(".", ",")}</strong> <span>${reviewCount(data.count)}</span>`
+      : `<span class="account-empty">Пока нет оценок</span>`;
+    const topRating = productDialog.querySelector(".product-rating-top span");
+    if (topRating) topRating.textContent = data.count
+      ? `${Number(data.average).toFixed(1).replace(".", ",")} · ${reviewCount(data.count)}`
+      : "Пока нет оценок · оставить отзыв";
+    root.querySelector(".review-list").innerHTML = data.reviews.map(review => `
+      <article class="review-entry">
+        <div class="review-entry-heading"><strong>${safe(review.author)}</strong>${stars(review.rating)}</div>
+        <time>${safe(new Date(review.updated_at).toLocaleDateString("ru-RU"))}</time>
+        <p>${safe(review.body)}</p>
+      </article>`).join("");
+    await accountReady;
+    if (!current()) return;
+    if (!account.token) {
+      root.querySelector(".review-editor").innerHTML = `<button type="button" class="review-login" data-action="review-login">Войти через Telegram, чтобы оставить отзыв</button>`;
+      return;
+    }
+    const mine = await account.myProductReview(productId);
+    if (!current()) return;
+    const rating = Number(mine?.rating || 0);
+    const author = [...(mine?.author || account.me?.name || "Гость")].slice(0, 40).join("");
+    root.querySelector(".review-editor").innerHTML = `<form id="review-form" data-rating="${rating}">
+      <h3>${mine ? "Мой отзыв" : "Оставить отзыв"}</h3>
+      <div class="review-rating" role="group" aria-label="Ваша оценка">${[1, 2, 3, 4, 5].map(value => `
+        <button type="button" data-action="review-rating" data-rating="${value}" aria-label="${value} из 5" aria-pressed="${value <= rating}">★</button>`).join("")}</div>
+      <label>Имя в отзыве<input name="author" minlength="2" maxlength="40" required value="${safe(author)}"></label>
+      <label>Ваш отзыв<textarea name="body" minlength="5" maxlength="600" rows="3" required>${safe(mine?.body || "")}</textarea></label>
+      <button class="primary-button" type="submit">${mine ? "Сохранить отзыв" : "Опубликовать отзыв"}</button>
+      <p class="review-status" role="status" aria-live="polite"></p>
+    </form>`;
+  } catch {
+    if (current()) root.querySelector(".review-editor").innerHTML = `<p class="account-empty">Не удалось загрузить отзывы.</p><button type="button" class="review-login" data-action="review-retry">Повторить</button>`;
+  }
 }
 
 function updateProductTotal() {
@@ -271,7 +370,7 @@ function renderCart() {
           const options = lineOptions(line);
           return `<div class="cart-line">
             <div class="cart-line-top">
-              <div class="cart-line-photo" role="img" aria-label="${safe(product.name)}" ${photoStyle(product.image)}></div>
+              <div class="cart-line-photo" role="img" aria-label="${safe(product.name)}" ${photoStyle(product.image_url || product.image)}></div>
               <div class="cart-line-copy"><p class="cart-line-name">${safe(product.name)}${portionSuffix(line)}</p><p class="cart-line-meta">${safe(portionWeight(product, line.half, line.xl))} · ${currency(linePrice(line))}/шт.</p>${options.length ? `<p class="cart-line-options">${options.map(option => `${option[2] ? "+ " : ""}${safe(option[1])}`).join(" · ")}</p>` : ""}</div>
               <span class="cart-line-total">${currency(linePrice(line) * line.count)}</span>
             </div>
@@ -293,9 +392,11 @@ async function checkout() {
   const checkoutButton = cartDialog.querySelector('[data-action="checkout"]');
   if (checkoutButton?.disabled) return;
   if (checkoutButton) checkoutButton.disabled = true;
-  if (telegram?.initData && !account.token) {
-    showToast("Не удалось войти. Демо-заказ не сохранён");
+  if (!account.token) {
+    showToast("Войдите через Telegram, чтобы сохранить заказ в общей истории");
     if (checkoutButton) checkoutButton.disabled = false;
+    cartDialog.close();
+    void openAccount();
     return;
   }
   let number = String(Math.floor(80000 + Math.random() * 10000));
@@ -306,9 +407,15 @@ async function checkout() {
         name: `${byId.get(line.itemId).name}${portionSuffix(line)}`,
         count: line.count,
         unit_price: linePrice(line),
-        options: lineOptions(line).map(option => option[1])
+        options: lineOptions(line).map(option => option[1]),
+        option_ids: line.optionIds,
+        variant: line.half ? "half" : line.xl ? "xl" : null
       }));
-      const order = await account.saveDemoOrder(items);
+      clearTimeout(cartSaveTimer);
+      await cartRequest.catch(()=>{});
+      checkoutRequestId ||= crypto.randomUUID();
+      try {localStorage.setItem("sharimzharim-checkout-id",checkoutRequestId);}catch{}
+      const order = await account.saveDemoOrder(items, checkoutRequestId);
       number = order.id.slice(0, 8).toUpperCase();
     } catch {
       showToast("Не удалось сохранить демо-заказ");
@@ -415,6 +522,47 @@ productDialog.addEventListener("click", event => {
     case "decrease": quantity = Math.max(1, quantity - 1); updateProductTotal(); break;
     case "increase": quantity = Math.min(99, quantity + 1); updateProductTotal(); break;
     case "add": addToCart(); break;
+    case "show-reviews": productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
+    case "review-rating": {
+      const form = button.closest("form");
+      form.dataset.rating = button.dataset.rating;
+      form.querySelectorAll("[data-action='review-rating']").forEach(star => {
+        star.setAttribute("aria-pressed", String(Number(star.dataset.rating) <= Number(form.dataset.rating)));
+      });
+      break;
+    }
+    case "review-login":
+      reviewProductAfterLogin = selectedProduct.id;
+      productDialog.close();
+      void openAccount();
+      break;
+    case "review-retry": void loadProductReviews(selectedProduct.id); break;
+  }
+});
+
+productDialog.addEventListener("submit", async event => {
+  if (event.target.id !== "review-form") return;
+  event.preventDefault();
+  const form = event.target;
+  const rating = Number(form.dataset.rating);
+  const status = form.querySelector(".review-status");
+  if (!rating) {
+    status.textContent = "Выберите оценку";
+    return;
+  }
+  const submit = form.querySelector('[type="submit"]');
+  submit.disabled = true;
+  try {
+    await account.saveProductReview(selectedProduct.id, {
+      author: form.elements.namedItem("author").value.trim(),
+      rating,
+      body: form.elements.namedItem("body").value.trim()
+    });
+    showToast("Отзыв сохранён");
+    void loadProductReviews(selectedProduct.id);
+  } catch {
+    status.textContent = "Не удалось сохранить отзыв. Попробуйте снова.";
+    submit.disabled = false;
   }
 });
 
@@ -444,37 +592,130 @@ cartDialog.addEventListener("click", event => {
 function updateAccountLink() {
   $("#account-link-label").textContent = account.me
     ? `${account.me.name} · скидки ${currency(account.me.discount_balance || 0)}`
-    : "Мои скидки и заказы";
+    : "Личный кабинет";
+}
+
+let accountRenderSeq = 0;
+let loginPollTimer = null;
+let loginPollBusy = false;
+
+function stopLoginPolling() {
+  clearInterval(loginPollTimer);
+  loginPollTimer = null;
+}
+
+async function pollLogin() {
+  if (loginPollBusy || !account.siteLogin) return;
+  loginPollBusy = true;
+  try {
+    const status = await account.pollSiteLogin();
+    if (status === "ready") {
+      stopLoginPolling();
+      updateAccountLink();
+      void restoreServerCart();
+      if (reviewProductAfterLogin && accountDialog.open) {
+        const productId = reviewProductAfterLogin;
+        reviewProductAfterLogin = null;
+        accountDialog.close();
+        openProduct(productId);
+        productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start" });
+      } else if (accountDialog.open) {
+        void openAccount();
+      }
+    } else if (status === "expired") {
+      stopLoginPolling();
+      const statusLine = accountDialog.querySelector("#login-status");
+      if (statusLine) statusLine.textContent = "Ссылка устарела. Создайте новую.";
+    }
+  } catch {
+    const statusLine = accountDialog.querySelector("#login-status");
+    if (statusLine) statusLine.textContent = "Нет связи с сервером. Повторяем попытку...";
+  } finally {
+    loginPollBusy = false;
+  }
+}
+
+function startLoginPolling() {
+  const statusLine = accountDialog.querySelector("#login-status");
+  if (statusLine) statusLine.textContent = "Ожидаем подтверждения в боте...";
+  if (!loginPollTimer) loginPollTimer = setInterval(() => void pollLogin(), 2500);
+  void pollLogin();
+}
+
+function renderOrder(order) {
+  const items = Array.isArray(order.items) ? order.items : [];
+  return `<details class="account-order">
+    <summary><span>№${safe(order.id.slice(0, 8).toUpperCase())}<small>${safe(new Date(order.created_at).toLocaleDateString("ru-RU"))} · демо</small></span><strong>${currency(order.total)}</strong></summary>
+    <div class="account-order-items">${items.map(item => `<div><span>${safe(item.name)} × ${Number(item.count) || 0}${item.options?.length ? `<small>${safe(item.options.join(", "))}</small>` : ""}</span><strong>${currency((Number(item.unit_price) || 0) * (Number(item.count) || 0))}</strong></div>`).join("")}</div>
+  </details>`;
 }
 
 async function openAccount() {
+  const seq = ++accountRenderSeq;
   accountDialog.innerHTML = `<div class="sheet-layout"><div class="sheet-header"><strong>Мой аккаунт</strong><button type="button" class="icon-button" data-action="close" aria-label="Закрыть"><span class="icon icon-x" aria-hidden="true"></span></button></div><div class="sheet-scroll"><p class="account-empty">Загрузка...</p></div></div>`;
-  accountDialog.showModal();
+  if (!accountDialog.open) accountDialog.showModal();
   document.body.classList.add("modal-open");
   await accountReady;
+  if (seq !== accountRenderSeq || !accountDialog.open) return;
   if (!account.token) {
-    accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">${telegram?.initData ? "Не удалось подключить аккаунт. Закройте окно и откройте меню снова." : "Откройте меню через Telegram-бота, чтобы видеть свои скидки и историю."}</p>`;
+    if (telegram?.initData) {
+      accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось подключить Telegram-аккаунт.</p><button type="button" class="primary-button" data-action="retry-auth">Повторить</button>`;
+      return;
+    }
+    try {
+      const login = await account.startSiteLogin();
+      if (seq !== accountRenderSeq || !accountDialog.open) return;
+      accountDialog.querySelector(".sheet-scroll").innerHTML = `
+        <div class="account-signin"><h2>Вход через Telegram</h2>
+          <p>Откройте бота и подтвердите вход с кодом <strong>${safe(login.code)}</strong>.</p>
+          <a class="primary-button" data-action="login-open" href="${safe(login.url)}" target="_blank" rel="noopener noreferrer">Открыть Telegram</a>
+          <p class="account-empty" id="login-status" role="status">Код действует 10 минут.</p>
+          <button type="button" class="review-login" data-action="login-retry">Новая ссылка</button>
+        </div>`;
+    } catch {
+      if (seq === accountRenderSeq && accountDialog.open) accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось начать вход.</p><button type="button" class="primary-button" data-action="login-retry">Повторить</button>`;
+    }
     return;
   }
   try {
-    const [me, orders] = await Promise.all([account.refresh(), account.orders()]);
+    const [me, orders, reviews] = await Promise.all([account.refresh(), account.orders(), account.myReviews()]);
+    if (seq !== accountRenderSeq || !accountDialog.open) return;
     updateAccountLink();
     accountDialog.querySelector(".sheet-scroll").innerHTML = `
-      <div class="account-total"><small>${safe(me.name)} · доступная скидка</small><strong>${currency(me.discount_balance || 0)}</strong></div>
+      <div class="account-identity"><strong>${safe(me.name)}</strong><span>Telegram ${me.telegram_username ? `@${safe(me.telegram_username)}` : "подключён"}</span></div>
+      <div class="account-stats"><div><small>Доступная скидка</small><strong>${currency(me.discount_balance || 0)}</strong></div><div><small>Сумма демо-заказов</small><strong>${currency(me.demo_order_total || 0)}</strong></div></div>
       <section class="account-section"><h2>Купоны</h2>${me.coupons?.filter(c => !c.redeemed).length
         ? me.coupons.filter(c => !c.redeemed).map(c => `<div class="account-entry"><span>${safe(c.code)}</span><span>${currency(c.value)}</span></div>`).join("")
         : `<p class="account-empty">Пока нет купонов</p>`}</section>
-      <section class="account-section"><h2>Демо-заказы</h2>${orders.length
-        ? orders.map(order => `<div class="account-entry"><span>№${safe(order.id.slice(0, 8).toUpperCase())} · ${safe(new Date(order.created_at).toLocaleDateString("ru-RU"))}</span><span>${currency(order.total)}</span></div>`).join("")
-        : `<p class="account-empty">История пока пуста</p>`}</section>`;
+      <section class="account-section"><h2>Демо-заказы <small>${Number(me.demo_order_count) || 0}</small></h2>${orders.length
+        ? orders.map(renderOrder).join("") + (me.demo_order_count > 50 ? `<p class="account-empty">Показаны последние 50 заказов</p>` : "")
+        : `<p class="account-empty">История пока пуста</p>`}</section>
+      <section class="account-section"><h2>Мои отзывы</h2>${reviews.length
+        ? reviews.map(review => `<button type="button" class="account-review-link" data-open-review="${Number(review.product_id)}"><span>${safe(byId.get(review.product_id)?.name || "Бургер")}<small>${stars(review.rating)}</small></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>`).join("")
+        : `<p class="account-empty">Отзывов пока нет</p>`}</section>
+      ${telegram?.initData ? "" : `<button type="button" class="account-logout" data-action="logout">Выйти из аккаунта</button>`}`;
   } catch {
-    accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось загрузить аккаунт. Попробуйте открыть его снова.</p>`;
+    if (seq === accountRenderSeq && accountDialog.open) accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось загрузить аккаунт.</p><button type="button" class="primary-button" data-action="retry-auth">Повторить</button>`;
   }
 }
 
 $("#account-link").addEventListener("click", () => void openAccount());
 accountDialog.addEventListener("click", event => {
-  if (event.target.closest('[data-action="close"]')) accountDialog.close();
+  const button = event.target.closest("[data-action], [data-open-review]");
+  if (!button) return;
+  if (button.dataset.openReview) {
+    accountDialog.close();
+    openProduct(Number(button.dataset.openReview));
+    productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start" });
+    return;
+  }
+  switch (button.dataset.action) {
+    case "close": accountDialog.close(); break;
+    case "login-open": startLoginPolling(); break;
+    case "login-retry": account.siteLogin = null; stopLoginPolling(); void openAccount(); break;
+    case "retry-auth": void account.connect().then(() => openAccount()); break;
+    case "logout": account.logout(); cart=[];saveCart();updateAccountLink();void openAccount(); break;
+  }
 });
 
 for (const dialog of [productDialog, cartDialog, accountDialog]) {
@@ -487,6 +728,7 @@ const accountReady = account.connect().then(updateAccountLink);
 setInterval(() => { if (account.token) void account.prepareHandoff(); }, 4 * 60_000);
 function refreshAccountAfterReturn() {
   if (account.token) void account.refresh().then(updateAccountLink).catch(() => {});
+  if (account.siteLogin) void pollLogin();
 }
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshAccountAfterReturn();
@@ -494,7 +736,43 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("focus", refreshAccountAfterReturn);
 telegram?.onEvent?.("activated", refreshAccountAfterReturn);
 
-renderCategories();
-renderProducts();
-renderCartButton();
-syncActiveCategory();
+async function restoreServerCart() {
+  if (!account.token || !catalogReady) return;
+  try {
+    const owner=localStorage.getItem("sharimzharim-cart-owner");
+    if(owner && owner!==String(account.me.customer_id)) {cart=[];checkoutRequestId=null;localStorage.removeItem("sharimzharim-checkout-id");}
+    localStorage.setItem("sharimzharim-cart-owner",String(account.me.customer_id));
+  }catch{}
+  if (cart.length) {queueCartSave(); return;}
+  try {
+    const saved=await account.request("/cart");
+    cart=saved.items.filter(line=>byId.has(line.item_id)).map(line=>({itemId:line.item_id,count:line.count,
+      optionIds:line.option_ids||[],half:line.variant==="half",xl:line.variant==="xl"}));
+    // Persist without re-writing the server just because this page was opened.
+    try {localStorage.setItem("sharimzharim-cart",JSON.stringify(cart));}catch{}
+    renderCartButton();
+  } catch {showToast("Не удалось загрузить сохранённую корзину");}
+}
+
+async function loadCatalog(restore = true) {
+  try {
+    const response=await fetch(`${API_BASE}/catalog`,{cache:"no-store"});
+    if(!response.ok)throw new Error("catalog");
+    const data=await response.json();
+    products=data.products;
+    const labels=p=>p.category==="На булке" ? "Бургеры" : p.category;
+    categories=[...new Set(["Шаверма","Бургеры","В листьях","Курица","Фритюр","Закуски",...products.map(labels)])]
+      .filter(c=>products.some(p=>labels(p)===c));
+    byId.clear();products.forEach(p=>byId.set(p.id,p));
+    catalogReady=true;cart=loadCart();
+    renderCategories();renderProducts();renderCartButton();syncActiveCategory();
+    await accountReady;
+    if(restore)await restoreServerCart();
+  }catch{
+    catalogReady=false;products=[];byId.clear();
+    menuSections.innerHTML='<p class="empty-search">Общее меню временно недоступно. <button type="button" id="retry-catalog">Повторить загрузку</button></p>';
+    document.getElementById("retry-catalog").addEventListener("click",()=>void loadCatalog());
+  }
+}
+void loadCatalog();
+setInterval(()=>{if(!document.hidden&&!productDialog.open&&!cartDialog.open)void loadCatalog(false);},60000);
