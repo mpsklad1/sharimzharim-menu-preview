@@ -43,7 +43,13 @@ export class MenuAccount {
     if (response.status === 401 && authenticated) {
       this.logout();
     }
-    if (!response.ok) throw new Error(`Сервер ответил ${response.status}`);
+    if (!response.ok) {
+      const details = await response.json().catch(() => ({}));
+      const error = new Error(`Сервер ответил ${response.status}`);
+      error.status = response.status;
+      error.code = details.error || details.code;
+      throw error;
+    }
     return response.json();
   }
 
@@ -136,8 +142,9 @@ export class MenuAccount {
       source: this.telegram?.initData ? "telegram" : "site" });
   }
 
-  async productReviews(productId) {
-    return this.request(`/products/${productId}/reviews`, "GET", undefined, false);
+  async productReviews(productId, cursor = null) {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+    return this.request(`/products/${productId}/reviews${query}`, "GET", undefined, false);
   }
 
   async myProductReview(productId) {

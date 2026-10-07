@@ -1,5 +1,6 @@
 import { imageFor } from "./menu-data.js";
-import { MenuAccount, API_BASE } from "./account.js?v=20261002-shared";
+import { MenuAccount, API_BASE } from "./account.js?v=20261007-purchase-reviews";
+import { createReviews } from "./reviews.js?v=20261007-purchase-reviews";
 
 // No separate local catalog: website and Mini App read the same database.
 let categories = [];
@@ -23,6 +24,7 @@ const menuSections = $("#menu-sections");
 const appHeader = $(".app-header");
 const search = $("#menu-search");
 const productDialog = $("#product-dialog");
+const reviewsDialog = $("#reviews-dialog");
 const cartDialog = $("#cart-dialog");
 const accountDialog = $("#account-dialog");
 const gamePromo = $("#game-promo");
@@ -38,6 +40,7 @@ let halfPortion = false;
 let xlPortion = false;
 let toastTimer;
 let reviewProductAfterLogin = null;
+const reviewProducts = new Map();
 let catalogReady = false;
 let cartSaveTimer;
 let cartRequest = Promise.resolve();
@@ -120,7 +123,7 @@ function renderProductCards(items) {
       </button>
       <div class="product-name">${safe(product.name)}</div>
       <p class="product-weight">${safe(product.weight)}</p>
-      ${isBurger(product) ? `<button type="button" class="product-card-reviews" data-open="${product.id}" aria-label="Отзывы о ${safe(product.name)}">★ <span>Оценки и отзывы</span></button>` : ""}
+      ${reviewSummaryButton(product, "product-card-reviews")}
       <div class="product-bottom">
         <span class="product-price">${product.id === 30 ? "от " + currency(Math.min(product.price,...product.variants.map(v=>v.price))) : currency(product.price)}</span>
         <button type="button" class="product-add" data-open="${product.id}" aria-label="Настроить ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button>
@@ -181,19 +184,47 @@ function selectedPrice() {
     .reduce((sum, option) => sum + option[2], 0);
 }
 
-function isBurger(product) {
-  return product.category === "На булке" || product.category === "В листьях";
+function pluralCount(count, forms) {
+  const n = Math.max(0, Number(count) || 0);
+  const lastTwo = n % 100, last = n % 10;
+  const word = lastTwo >= 11 && lastTwo <= 14 ? forms[2] : last === 1 ? forms[0] : last >= 2 && last <= 4 ? forms[1] : forms[2];
+  return `${new Intl.NumberFormat("ru-RU").format(n)} ${word}`;
 }
-
 function stars(rating) {
-  const filled = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
-  return `<span class="review-stars" aria-label="Оценка ${filled} из 5">${"★".repeat(filled)}${"☆".repeat(5 - filled)}</span>`;
+  const value = Math.max(0, Math.min(5, Number(rating) || 0));
+  const filled = Math.round(value);
+  return `<span class="review-stars" aria-label="${String(value).replace(".", ",")} из 5">${"★".repeat(filled)}${"☆".repeat(5 - filled)}</span>`;
 }
-
-function reviewCount(count) {
-  const lastTwo = count % 100;
-  const last = count % 10;
-  return `${count} ${lastTwo >= 11 && lastTwo <= 14 ? "отзывов" : last === 1 ? "отзыв" : last >= 2 && last <= 4 ? "отзыва" : "отзывов"}`;
+function reviewSummaryMarkup(summary) {
+  if (!summary) return '<span class="rating-line"><span class="rating-star" aria-hidden="true">☆</span><span>Оценки и отзывы</span></span><span class="rating-caption">Открыть <span aria-hidden="true">›</span></span>';
+  const hasRatings = Number(summary.rating_count) > 0;
+  return `<span class="rating-line"><span class="rating-star" aria-hidden="true">${hasRatings ? "★" : "☆"}</span>${hasRatings
+    ? `<strong>${Number(summary.average).toFixed(1).replace(".", ",")}</strong><span class="rating-dot" aria-hidden="true">·</span><span>${pluralCount(summary.rating_count, ["оценка", "оценки", "оценок"])}</span>`
+    : '<span>Пока нет оценок</span>'}</span><span class="rating-caption">${pluralCount(summary.review_count, ["отзыв", "отзыва", "отзывов"])} <span aria-hidden="true">›</span></span>`;
+}
+function reviewSummaryLabel(product) {
+  const summary = product.review_summary;
+  return `Оценки и отзывы: ${product.name}${summary ? `. ${summary.rating_count ? Number(summary.average).toFixed(1).replace(".", ",") + " из 5. " : ""}${pluralCount(summary.rating_count, ["оценка", "оценки", "оценок"])}. ${pluralCount(summary.review_count, ["отзыв", "отзыва", "отзывов"])}` : ""}`;
+}
+function reviewSummaryButton(product, className) {
+  return `<button type="button" class="${className}" data-open-reviews="${product.id}" data-review-summary="${product.id}" aria-label="${safe(reviewSummaryLabel(product))}">${reviewSummaryMarkup(product.review_summary)}</button>`;
+}
+function updateReviewSummary(id, summary) {
+  const product = byId.get(id);
+  if (!product) return;
+  product.review_summary = { rating_count: summary.rating_count, review_count: summary.review_count, average: summary.average };
+  document.querySelectorAll(`[data-review-summary="${id}"]`).forEach(button => {
+    button.innerHTML = reviewSummaryMarkup(product.review_summary);
+    button.setAttribute("aria-label", reviewSummaryLabel(product));
+  });
+}
+function openReviews(id, fallback = null) {
+  const product = byId.get(id) || fallback || reviewProducts.get(id);
+  if (!product) { showToast("Это блюдо пока недоступно в меню"); return; }
+  reviewProducts.set(id, product);
+  reviewUI.open(product);
+  document.body.classList.add("modal-open");
+  telegram?.BackButton?.show?.();
 }
 
 function openProduct(id) {
@@ -212,7 +243,7 @@ function openProduct(id) {
         <div class="sheet-photo" role="img" aria-label="${safe(product.name)}" ${photoStyle(product.image_url || product.image)}></div>
         <h2 class="sheet-title">${safe(product.name)}</h2>
         <p class="sheet-weight" id="detail-weight">${safe(product.weight)}</p>
-        ${isBurger(product) ? `<button type="button" class="product-rating-top" data-action="show-reviews" aria-label="Перейти к отзывам">★ <span>Оценки и отзывы</span></button>` : ""}
+        ${reviewSummaryButton(product, "product-rating-top")}
         <p class="sheet-description">${safe(product.description)}</p>
         ${product.id === 30 ? `
           <div class="section-heading"><h2>Порция</h2></div>
@@ -228,12 +259,6 @@ function openProduct(id) {
             <button type="button" data-action="size" data-xl="true" aria-pressed="false">XL · 500 г</button>
           </div>
           <p class="portion-price" id="size-price">Стандарт · ${currency(product.price)}</p>` : ""}
-        ${isBurger(product) ? `<section class="product-reviews" id="product-reviews" data-product-id="${product.id}">
-          <div class="section-heading"><h2>Оценки и отзывы</h2></div>
-          <div class="review-overview account-empty">Загрузка отзывов...</div>
-          <div class="review-list"></div>
-          <div class="review-editor"></div>
-        </section>` : ""}
         ${groups.map(group => `
           <div class="section-heading"><h2>${safe(group.title)}</h2><span>Выберите до ${group.limit}</span></div>
           <div class="option-list">${group.options.map(option => `
@@ -253,51 +278,7 @@ function openProduct(id) {
     </div>`;
   productDialog.showModal();
   document.body.classList.add("modal-open");
-  if (isBurger(product)) void loadProductReviews(product.id);
-}
 
-async function loadProductReviews(productId) {
-  const root = productDialog.querySelector(`#product-reviews[data-product-id="${productId}"]`);
-  if (!root) return;
-  const current = () => root.isConnected && root.dataset.productId === String(productId);
-  try {
-    const data = await account.productReviews(productId);
-    if (!current()) return;
-    root.querySelector(".review-overview").innerHTML = data.count
-      ? `${stars(data.average)} <strong>${Number(data.average).toFixed(1).replace(".", ",")}</strong> <span>${reviewCount(data.count)}</span>`
-      : `<span class="account-empty">Пока нет оценок</span>`;
-    const topRating = productDialog.querySelector(".product-rating-top span");
-    if (topRating) topRating.textContent = data.count
-      ? `${Number(data.average).toFixed(1).replace(".", ",")} · ${reviewCount(data.count)}`
-      : "Пока нет оценок · оставить отзыв";
-    root.querySelector(".review-list").innerHTML = data.reviews.map(review => `
-      <article class="review-entry">
-        <div class="review-entry-heading"><strong>${safe(review.author)}</strong>${stars(review.rating)}</div>
-        <time>${safe(new Date(review.updated_at).toLocaleDateString("ru-RU"))}</time>
-        <p>${safe(review.body)}</p>
-      </article>`).join("");
-    await accountReady;
-    if (!current()) return;
-    if (!account.token) {
-      root.querySelector(".review-editor").innerHTML = `<button type="button" class="review-login" data-action="review-login">Войти через Telegram, чтобы оставить отзыв</button>`;
-      return;
-    }
-    const mine = await account.myProductReview(productId);
-    if (!current()) return;
-    const rating = Number(mine?.rating || 0);
-    const author = [...(mine?.author || account.me?.name || "Гость")].slice(0, 40).join("");
-    root.querySelector(".review-editor").innerHTML = `<form id="review-form" data-rating="${rating}">
-      <h3>${mine ? "Мой отзыв" : "Оставить отзыв"}</h3>
-      <div class="review-rating" role="group" aria-label="Ваша оценка">${[1, 2, 3, 4, 5].map(value => `
-        <button type="button" data-action="review-rating" data-rating="${value}" aria-label="${value} из 5" aria-pressed="${value <= rating}">★</button>`).join("")}</div>
-      <label>Имя в отзыве<input name="author" minlength="2" maxlength="40" required value="${safe(author)}"></label>
-      <label>Ваш отзыв<textarea name="body" minlength="5" maxlength="600" rows="3" required>${safe(mine?.body || "")}</textarea></label>
-      <button class="primary-button" type="submit">${mine ? "Сохранить отзыв" : "Опубликовать отзыв"}</button>
-      <p class="review-status" role="status" aria-live="polite"></p>
-    </form>`;
-  } catch {
-    if (current()) root.querySelector(".review-editor").innerHTML = `<p class="account-empty">Не удалось загрузить отзывы.</p><button type="button" class="review-login" data-action="review-retry">Повторить</button>`;
-  }
 }
 
 function updateProductTotal() {
@@ -462,8 +443,9 @@ window.addEventListener("scroll", () => {
   });
 }, { passive: true });
 menuSections.addEventListener("click", event => {
-  const button = event.target.closest("[data-open]");
-  if (button) openProduct(Number(button.dataset.open));
+  const button = event.target.closest("[data-open], [data-open-reviews]");
+  if (button?.dataset.openReviews) openReviews(Number(button.dataset.openReviews));
+  else if (button) openProduct(Number(button.dataset.open));
 });
 $("#header-cart").addEventListener("click", openCart);
 $("#cart-bar").addEventListener("click", openCart);
@@ -495,7 +477,10 @@ gamePromo.addEventListener("click", event => {
   $("#game-back").focus();
 });
 $("#game-back").addEventListener("click", closeGame);
-telegram?.BackButton?.onClick?.(closeGame);
+telegram?.BackButton?.onClick?.(() => {
+  if (reviewsDialog.open) reviewUI.close();
+  else closeGame();
+});
 window.addEventListener("message", event => {
   if (event.source !== gameFrame.contentWindow || event.origin !== location.origin) return;
   if (event.data?.type === "sharim:close-game") closeGame();
@@ -503,8 +488,9 @@ window.addEventListener("message", event => {
 });
 
 productDialog.addEventListener("click", event => {
-  const button = event.target.closest("[data-action]");
+  const button = event.target.closest("[data-action], [data-open-reviews]");
   if (!button) return;
+  if (button.dataset.openReviews) { openReviews(Number(button.dataset.openReviews)); return; }
   switch (button.dataset.action) {
     case "close": productDialog.close(); break;
     case "portion": halfPortion = button.dataset.half === "true"; updateProductTotal(); break;
@@ -522,47 +508,6 @@ productDialog.addEventListener("click", event => {
     case "decrease": quantity = Math.max(1, quantity - 1); updateProductTotal(); break;
     case "increase": quantity = Math.min(99, quantity + 1); updateProductTotal(); break;
     case "add": addToCart(); break;
-    case "show-reviews": productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start", behavior: "smooth" }); break;
-    case "review-rating": {
-      const form = button.closest("form");
-      form.dataset.rating = button.dataset.rating;
-      form.querySelectorAll("[data-action='review-rating']").forEach(star => {
-        star.setAttribute("aria-pressed", String(Number(star.dataset.rating) <= Number(form.dataset.rating)));
-      });
-      break;
-    }
-    case "review-login":
-      reviewProductAfterLogin = selectedProduct.id;
-      productDialog.close();
-      void openAccount();
-      break;
-    case "review-retry": void loadProductReviews(selectedProduct.id); break;
-  }
-});
-
-productDialog.addEventListener("submit", async event => {
-  if (event.target.id !== "review-form") return;
-  event.preventDefault();
-  const form = event.target;
-  const rating = Number(form.dataset.rating);
-  const status = form.querySelector(".review-status");
-  if (!rating) {
-    status.textContent = "Выберите оценку";
-    return;
-  }
-  const submit = form.querySelector('[type="submit"]');
-  submit.disabled = true;
-  try {
-    await account.saveProductReview(selectedProduct.id, {
-      author: form.elements.namedItem("author").value.trim(),
-      rating,
-      body: form.elements.namedItem("body").value.trim()
-    });
-    showToast("Отзыв сохранён");
-    void loadProductReviews(selectedProduct.id);
-  } catch {
-    status.textContent = "Не удалось сохранить отзыв. Попробуйте снова.";
-    submit.disabled = false;
   }
 });
 
@@ -617,8 +562,7 @@ async function pollLogin() {
         const productId = reviewProductAfterLogin;
         reviewProductAfterLogin = null;
         accountDialog.close();
-        openProduct(productId);
-        productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start" });
+        openReviews(productId);
       } else if (accountDialog.open) {
         void openAccount();
       }
@@ -644,9 +588,11 @@ function startLoginPolling() {
 
 function renderOrder(order) {
   const items = Array.isArray(order.items) ? order.items : [];
+  const purchased = order.status === "completed";
+  const statusText = {demo:"тестовый заказ",pending:"ожидает оплаты",paid:"оплачен",completed:"получен",cancelled:"отменён",refunded:"возврат"}[order.status] || "в обработке";
   return `<details class="account-order">
-    <summary><span>№${safe(order.id.slice(0, 8).toUpperCase())}<small>${safe(new Date(order.created_at).toLocaleDateString("ru-RU"))} · демо</small></span><strong>${currency(order.total)}</strong></summary>
-    <div class="account-order-items">${items.map(item => `<div><span>${safe(item.name)} × ${Number(item.count) || 0}${item.options?.length ? `<small>${safe(item.options.join(", "))}</small>` : ""}</span><strong>${currency((Number(item.unit_price) || 0) * (Number(item.count) || 0))}</strong></div>`).join("")}</div>
+    <summary><span>№${safe(order.id.slice(0, 8).toUpperCase())}<small>${safe(new Date(order.created_at).toLocaleDateString("ru-RU"))} · ${statusText}</small></span><strong>${currency(order.total)}</strong></summary>
+    <div class="account-order-items">${items.map(item => `<div><span>${safe(item.name)} × ${Number(item.count) || 0}${item.options?.length ? `<small>${safe(item.options.join(", "))}</small>` : ""}${purchased ? `<button type="button" class="review-login" data-open-review="${Number(item.item_id)}" data-review-name="${safe(item.name)}">Оценить блюдо</button>` : ""}</span><strong>${currency((Number(item.unit_price) || 0) * (Number(item.count) || 0))}</strong></div>`).join("")}</div>
   </details>`;
 }
 
@@ -687,11 +633,11 @@ async function openAccount() {
       <section class="account-section"><h2>Купоны</h2>${me.coupons?.filter(c => !c.redeemed).length
         ? me.coupons.filter(c => !c.redeemed).map(c => `<div class="account-entry"><span>${safe(c.code)}</span><span>${currency(c.value)}</span></div>`).join("")
         : `<p class="account-empty">Пока нет купонов</p>`}</section>
-      <section class="account-section"><h2>Демо-заказы <small>${Number(me.demo_order_count) || 0}</small></h2>${orders.length
-        ? orders.map(renderOrder).join("") + (me.demo_order_count > 50 ? `<p class="account-empty">Показаны последние 50 заказов</p>` : "")
+      <section class="account-section"><h2>Мои заказы</h2>${orders.length
+        ? orders.map(renderOrder).join("") + (orders.length === 50 ? `<p class="account-empty">Показаны последние 50 заказов</p>` : "")
         : `<p class="account-empty">История пока пуста</p>`}</section>
       <section class="account-section"><h2>Мои отзывы</h2>${reviews.length
-        ? reviews.map(review => `<button type="button" class="account-review-link" data-open-review="${Number(review.product_id)}"><span>${safe(byId.get(review.product_id)?.name || "Бургер")}<small>${stars(review.rating)}</small></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>`).join("")
+        ? reviews.map(review => `<button type="button" class="account-review-link" data-open-review="${Number(review.product_id)}"><span>${safe(byId.get(review.product_id)?.name || "Блюдо")}<small>${stars(review.rating)}</small></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>`).join("")
         : `<p class="account-empty">Отзывов пока нет</p>`}</section>
       ${telegram?.initData ? "" : `<button type="button" class="account-logout" data-action="logout">Выйти из аккаунта</button>`}`;
   } catch {
@@ -705,8 +651,7 @@ accountDialog.addEventListener("click", event => {
   if (!button) return;
   if (button.dataset.openReview) {
     accountDialog.close();
-    openProduct(Number(button.dataset.openReview));
-    productDialog.querySelector("#product-reviews")?.scrollIntoView({ block: "start" });
+    openReviews(Number(button.dataset.openReview), {id:Number(button.dataset.openReview),name:button.dataset.reviewName || "Блюдо из заказа"});
     return;
   }
   switch (button.dataset.action) {
@@ -718,13 +663,32 @@ accountDialog.addEventListener("click", event => {
   }
 });
 
-for (const dialog of [productDialog, cartDialog, accountDialog]) {
+for (const dialog of [productDialog, reviewsDialog, cartDialog, accountDialog]) {
   dialog.addEventListener("close", () => {
-    if (!productDialog.open && !cartDialog.open && !accountDialog.open) document.body.classList.remove("modal-open");
+    if (!productDialog.open && !reviewsDialog.open && !cartDialog.open && !accountDialog.open) document.body.classList.remove("modal-open");
   });
 }
 
 const accountReady = account.connect().then(updateAccountLink);
+const reviewUI = createReviews({
+  dialog: reviewsDialog, account, accountReady,
+  onSummary: updateReviewSummary,
+  onLogin: id => {
+    reviewProductAfterLogin = id;
+    reviewUI.close();
+    void openAccount();
+  },
+  onAccount: () => { reviewUI.close(); void openAccount(); }
+});
+reviewsDialog.addEventListener("close", () => {
+  if (gameView.hidden && !reviewsDialog.open) telegram?.BackButton?.hide?.();
+});
+accountDialog.addEventListener("close", () => {
+  if (!reviewProductAfterLogin) return;
+  const id = reviewProductAfterLogin;
+  reviewProductAfterLogin = null;
+  openReviews(id);
+});
 setInterval(() => { if (account.token) void account.prepareHandoff(); }, 4 * 60_000);
 function refreshAccountAfterReturn() {
   if (account.token) void account.refresh().then(updateAccountLink).catch(() => {});
@@ -775,4 +739,4 @@ async function loadCatalog(restore = true) {
   }
 }
 void loadCatalog();
-setInterval(()=>{if(!document.hidden&&!productDialog.open&&!cartDialog.open)void loadCatalog(false);},60000);
+setInterval(()=>{if(!document.hidden&&!productDialog.open&&!reviewsDialog.open&&!cartDialog.open)void loadCatalog(false);},60000);
