@@ -1,5 +1,5 @@
-import {API_BASE} from './account.js?v=20261002-shared';
-import {ManagerAccount} from './manager-account.js?v=20261002-switch';
+import {API_BASE,LEGACY_API_BASE} from './account.js?v=20261007-domain';
+import {ManagerAccount} from './manager-account.js?v=20261007-domain';
 import {ProductAvailability,isProductEnabled} from './product-availability.js?v=20261002-switch';
 import {imageFor} from './menu-data.js';
 const $=s=>document.querySelector(s);
@@ -64,7 +64,7 @@ async function toggleProduct(id,enabled){
   }
 }
 function photo(p){
-  if(p.image_url?.startsWith(`${API_BASE}/catalog/images/`))return `<span class="photo" style="background-image:url('${esc(p.image_url)}');background-size:cover;background-position:center"></span>`;
+  if([API_BASE,LEGACY_API_BASE].some(base=>p.image_url?.startsWith(`${base}/catalog/images/`)))return `<span class="photo" style="background-image:url('${esc(p.image_url)}');background-size:cover;background-position:center"></span>`;
   const [name,cols,rows,pos]=imageFor(p.image);
   const image=new URL(`./menu-assets/${name}.webp`,import.meta.url).href;
   return `<span class="photo" style="background-image:url('${esc(image)}');background-size:${cols*100}% ${rows*100}%;background-position:${cols===1?0:pos%cols*100/(cols-1)}% ${rows===1?0:Math.floor(pos/cols)*100/(rows-1)}%"></span>`;

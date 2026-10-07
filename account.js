@@ -1,4 +1,7 @@
-export const API_BASE = "https://sharim.176-222-53-108.sslip.io/api";
+export const LEGACY_API_BASE = "https://sharim.176-222-53-108.sslip.io/api";
+export const API_BASE = /^(www\.)?sharimzharim\.pro$/.test(location.hostname)
+  ? `${location.origin}/api`
+  : LEGACY_API_BASE;
 const TOKEN_KEY = "sharimzharim-site-token";
 
 function savedToken() {

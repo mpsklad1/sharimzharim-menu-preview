@@ -1,5 +1,5 @@
 import { imageFor } from "./menu-data.js";
-import { MenuAccount, API_BASE } from "./account.js?v=20261007-purchase-reviews";
+import { MenuAccount, API_BASE } from "./account.js?v=20261007-domain";
 import { createReviews } from "./reviews.js?v=20261007-purchase-reviews";
 
 // No separate local catalog: website and Mini App read the same database.

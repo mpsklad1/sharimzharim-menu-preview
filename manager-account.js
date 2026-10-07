@@ -1,4 +1,4 @@
-import {API_BASE} from './account.js?v=20261002-shared';
+import {API_BASE} from './account.js?v=20261007-domain';
 
 const SESSION_KEY = 'sharimzharim-manager-session';
 
