@@ -203,6 +203,25 @@ dialog.sheet::backdrop { background: rgb(0 0 0 / 45%); }
 .account-review-link small { font-size: 13px; }
 .account-review-link .icon { width: 16px; height: 16px; }
 .account-logout { margin: 5px 0 15px; padding: 0; min-height: 42px; border: 0; background: transparent; color: var(--red); font-size: 14px; font-weight: 700; }
+.account-auth-form { display: grid; gap: 16px; margin-top: 18px; }
+.account-auth-form > label { display: grid; gap: 7px; font-size: 14px; font-weight: 700; }
+.account-auth-form input { width: 100%; min-width: 0; min-height: 48px; padding: 12px; border: 1px solid #bdbdbd; border-radius: 9px; background: #fff; color: var(--ink); font: inherit; font-size: 16px; font-weight: 400; }
+.account-password { display: flex; border: 1px solid #bdbdbd; border-radius: 9px; overflow: hidden; }
+.account-password input { flex: 1; width: 0; border: 0; border-radius: 0; }
+.account-password button { flex: none; min-width: 78px; padding: 0 12px; border: 0; background: transparent; color: var(--muted); font-size: 12px; }
+.account-auth-form .primary-button { width: 100%; margin: 0; }
+.account-auth-text { display: block; min-height: 44px; margin-top: 8px; padding: 8px 0; border: 0; background: transparent; color: var(--red); font-size: 14px; font-weight: 700; text-align: left; }
+.account-auth-alternative { display: grid; gap: 12px; margin-top: 18px; text-align: center; }
+.account-auth-alternative > span { color: var(--muted); font-size: 13px; }
+.account-auth-secondary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 9px; background: white; color: var(--ink); font-size: 14px; font-weight: 700; text-decoration: none; }
+.account-auth-hint { margin: 8px 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.account-auth-status { margin: 0; color: #b21217; font-size: 14px; font-weight: 400; line-height: 1.45; }
+.account-auth-status:empty { display: none; }
+.account-access { padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.account-access .primary-button { width: 100%; }
+.account-auth-form input:focus-visible, .account-password:focus-within { outline: 2px solid var(--red); outline-offset: 2px; }
+.account-password input:focus-visible { outline: none; }
+.account-auth-form button:disabled, .account-auth-secondary:disabled { opacity: .6; cursor: wait; }
 .toast { position: fixed; z-index: 20; left: 50%; bottom: max(80px, calc(env(safe-area-inset-bottom) + 75px)); transform: translate(-50%, 10px); min-width: 160px; max-width: calc(100vw - 40px); padding: 10px 15px; border-radius: 7px; background: var(--ink); color: var(--white); font-size: 13px; text-align: center; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; }
 .toast.visible { transform: translate(-50%, 0); opacity: 1; }
 

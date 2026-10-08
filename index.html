@@ -6,11 +6,16 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="description" content="Меню #ШаримЖарим: бургеры, шаверма, курица гриль и закуски.">
   <title>#ШаримЖарим · Меню</title>
+  <script>
+    if (location.protocol === "http:" && /^(www\.)?sharimzharim\.pro$/.test(location.hostname)) {
+      location.replace(`https://mpsklad1.github.io/sharimzharim-menu-preview/${location.search}${location.hash}`);
+    }
+  </script>
   <link rel="icon" type="image/png" href="./assets/icon.png">
-  <link rel="stylesheet" href="./style.css?v=20261007-purchase-reviews">
-  <link rel="stylesheet" href="./reviews.css?v=20261007-purchase-reviews">
+  <link rel="stylesheet" href="./style.css?v=20261008-password-auth">
+  <link rel="stylesheet" href="./reviews.css?v=20261008-password-auth">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script type="module" src="./app.js?v=20261007-domain"></script>
+  <script type="module" src="./app.js?v=20261008-password-auth"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -33,7 +38,7 @@
     </header>
 
     <main class="catalog">
-      <button class="account-link" id="account-link" type="button"><span id="account-link-label">Мои скидки</span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>
+      <button class="account-link" id="account-link" type="button"><span id="account-link-label">Личный кабинет</span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>
       <a class="game-promo" id="game-promo" href="./game/" aria-label="Поймай скидку — открыть игру">
         <span class="game-promo-copy">
           <span class="game-promo-kicker">ИГРА #ШАРИМЖАРИМ</span>

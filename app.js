@@ -1,6 +1,7 @@
 import { imageFor } from "./menu-data.js";
-import { MenuAccount, API_BASE } from "./account.js?v=20261007-domain";
-import { createReviews } from "./reviews.js?v=20261007-purchase-reviews";
+import { MenuAccount, API_BASE } from "./account.js?v=20261008-password-auth";
+import { createAccountAuth } from "./auth-ui.js?v=20261008-password-auth";
+import { createReviews } from "./reviews.js?v=20261008-password-auth";
 
 // No separate local catalog: website and Mini App read the same database.
 let categories = [];
@@ -357,7 +358,7 @@ function renderCart() {
             </div>
             <div class="cart-line-actions"><button type="button" data-action="line-decrease" data-index="${index}" aria-label="Уменьшить количество ${safe(product.name)}"><span class="icon icon-minus" aria-hidden="true"></span></button><strong>${line.count}</strong><button type="button" data-action="line-increase" data-index="${index}" aria-label="Увеличить количество ${safe(product.name)}"><span class="icon icon-plus" aria-hidden="true"></span></button></div>
           </div>`;
-        }).join("") + `<p class="cart-note">${account.token ? "Демо-заказ сохранится в общей истории аккаунта. " : "Для сохранения в общей истории войдите через Telegram. "}Оплата и отправка в ресторан не выполняются.${account.me?.discount_balance ? ` Доступная скидка: ${currency(account.me.discount_balance)}.` : ""}</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
+        }).join("") + `<p class="cart-note">${account.token ? "Демо-заказ сохранится в общей истории аккаунта. " : "Для сохранения в истории войдите в аккаунт. "}Оплата и отправка в ресторан не выполняются.${account.me?.discount_balance ? ` Доступная скидка: ${currency(account.me.discount_balance)}.` : ""}</p>` : `<div class="cart-empty"><span class="icon icon-bag" aria-hidden="true"></span><strong>Корзина пуста</strong><span>Выберите блюда из меню</span></div>`}
       </div>
       ${hasItems ? `<div class="sheet-footer"><div class="cart-summary"><small>Итого</small><strong>${currency(cartTotal())}</strong></div><button type="button" class="primary-button" data-action="checkout">${account.token ? "Оформить демо-заказ" : "Войти и сохранить демо-заказ"}</button></div>` : ""}
     </div>`;
@@ -536,55 +537,32 @@ cartDialog.addEventListener("click", event => {
 
 function updateAccountLink() {
   $("#account-link-label").textContent = account.me
-    ? `${account.me.name} · скидки ${currency(account.me.discount_balance || 0)}`
+    ? `${account.me.login || account.me.name} · скидки ${currency(account.me.discount_balance || 0)}`
     : "Личный кабинет";
 }
 
 let accountRenderSeq = 0;
-let loginPollTimer = null;
-let loginPollBusy = false;
-
-function stopLoginPolling() {
-  clearInterval(loginPollTimer);
-  loginPollTimer = null;
+async function afterSignIn() {
+  updateAccountLink();
+  await restoreServerCart();
+  if (!accountDialog.open) return;
+  if (reviewProductAfterLogin) {
+    const productId = reviewProductAfterLogin;
+    reviewProductAfterLogin = null;
+    accountDialog.close();
+    openReviews(productId);
+  } else await openAccount();
 }
 
-async function pollLogin() {
-  if (loginPollBusy || !account.siteLogin) return;
-  loginPollBusy = true;
-  try {
-    const status = await account.pollSiteLogin();
-    if (status === "ready") {
-      stopLoginPolling();
-      updateAccountLink();
-      void restoreServerCart();
-      if (reviewProductAfterLogin && accountDialog.open) {
-        const productId = reviewProductAfterLogin;
-        reviewProductAfterLogin = null;
-        accountDialog.close();
-        openReviews(productId);
-      } else if (accountDialog.open) {
-        void openAccount();
-      }
-    } else if (status === "expired") {
-      stopLoginPolling();
-      const statusLine = accountDialog.querySelector("#login-status");
-      if (statusLine) statusLine.textContent = "Ссылка устарела. Создайте новую.";
-    }
-  } catch {
-    const statusLine = accountDialog.querySelector("#login-status");
-    if (statusLine) statusLine.textContent = "Нет связи с сервером. Повторяем попытку...";
-  } finally {
-    loginPollBusy = false;
+const accountAuth = createAccountAuth({
+  dialog: accountDialog, account, onSignedIn: afterSignIn,
+  onRefresh: () => { updateAccountLink(); if (accountDialog.open) return openAccount(); },
+  onLinked: async () => {
+    try { localStorage.setItem("sharimzharim-cart-owner", String(account.me.customer_id)); } catch {}
+    await afterSignIn();
+    showToast("Telegram привязан");
   }
-}
-
-function startLoginPolling() {
-  const statusLine = accountDialog.querySelector("#login-status");
-  if (statusLine) statusLine.textContent = "Ожидаем подтверждения в боте...";
-  if (!loginPollTimer) loginPollTimer = setInterval(() => void pollLogin(), 2500);
-  void pollLogin();
-}
+});
 
 function renderOrder(order) {
   const items = Array.isArray(order.items) ? order.items : [];
@@ -604,23 +582,7 @@ async function openAccount() {
   await accountReady;
   if (seq !== accountRenderSeq || !accountDialog.open) return;
   if (!account.token) {
-    if (telegram?.initData) {
-      accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось подключить Telegram-аккаунт.</p><button type="button" class="primary-button" data-action="retry-auth">Повторить</button>`;
-      return;
-    }
-    try {
-      const login = await account.startSiteLogin();
-      if (seq !== accountRenderSeq || !accountDialog.open) return;
-      accountDialog.querySelector(".sheet-scroll").innerHTML = `
-        <div class="account-signin"><h2>Вход через Telegram</h2>
-          <p>Откройте бота и подтвердите вход с кодом <strong>${safe(login.code)}</strong>.</p>
-          <a class="primary-button" data-action="login-open" href="${safe(login.url)}" target="_blank" rel="noopener noreferrer">Открыть Telegram</a>
-          <p class="account-empty" id="login-status" role="status">Код действует 10 минут.</p>
-          <button type="button" class="review-login" data-action="login-retry">Новая ссылка</button>
-        </div>`;
-    } catch {
-      if (seq === accountRenderSeq && accountDialog.open) accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось начать вход.</p><button type="button" class="primary-button" data-action="login-retry">Повторить</button>`;
-    }
+    accountAuth.showSignIn();
     return;
   }
   try {
@@ -628,8 +590,12 @@ async function openAccount() {
     if (seq !== accountRenderSeq || !accountDialog.open) return;
     updateAccountLink();
     accountDialog.querySelector(".sheet-scroll").innerHTML = `
-      <div class="account-identity"><strong>${safe(me.name)}</strong><span>Telegram ${me.telegram_username ? `@${safe(me.telegram_username)}` : "подключён"}</span></div>
+      <div class="account-identity"><strong>${safe(me.login || me.name)}</strong></div>
       <div class="account-stats"><div><small>Доступная скидка</small><strong>${currency(me.discount_balance || 0)}</strong></div><div><small>Сумма демо-заказов</small><strong>${currency(me.demo_order_total || 0)}</strong></div></div>
+      <section class="account-section account-access"><h2>Telegram</h2>${me.telegram_linked
+        ? `<p class="account-auth-hint">${me.telegram_username ? `@${safe(me.telegram_username)} · ` : ""}Подключён</p>`
+        : '<div id="telegram-link-panel"></div>'}</section>
+      ${!me.login ? '<section class="account-section account-access"><h2>Вход по логину</h2><div id="site-credentials-panel"><button type="button" class="account-auth-secondary" data-auth-action="credentials-open">Добавить логин и пароль</button></div></section>' : ""}
       <section class="account-section"><h2>Купоны</h2>${me.coupons?.filter(c => !c.redeemed).length
         ? me.coupons.filter(c => !c.redeemed).map(c => `<div class="account-entry"><span>${safe(c.code)}</span><span>${currency(c.value)}</span></div>`).join("")
         : `<p class="account-empty">Пока нет купонов</p>`}</section>
@@ -638,8 +604,9 @@ async function openAccount() {
         : `<p class="account-empty">История пока пуста</p>`}</section>
       <section class="account-section"><h2>Мои отзывы</h2>${reviews.length
         ? reviews.map(review => `<button type="button" class="account-review-link" data-open-review="${Number(review.product_id)}"><span>${safe(byId.get(review.product_id)?.name || "Блюдо")}<small>${stars(review.rating)}</small></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>`).join("")
-        : `<p class="account-empty">Отзывов пока нет</p>`}</section>
+        : `<p class="account-empty">Отзывов ещё нет</p>`}</section>
       ${telegram?.initData ? "" : `<button type="button" class="account-logout" data-action="logout">Выйти из аккаунта</button>`}`;
+    accountAuth.renderLink();
   } catch {
     if (seq === accountRenderSeq && accountDialog.open) accountDialog.querySelector(".sheet-scroll").innerHTML = `<p class="account-empty">Не удалось загрузить аккаунт.</p><button type="button" class="primary-button" data-action="retry-auth">Повторить</button>`;
   }
@@ -656,10 +623,15 @@ accountDialog.addEventListener("click", event => {
   }
   switch (button.dataset.action) {
     case "close": accountDialog.close(); break;
-    case "login-open": startLoginPolling(); break;
-    case "login-retry": account.siteLogin = null; stopLoginPolling(); void openAccount(); break;
     case "retry-auth": void account.connect().then(() => openAccount()); break;
-    case "logout": account.logout(); cart=[];saveCart();updateAccountLink();void openAccount(); break;
+    case "logout":
+      accountAuth.stop();
+      void account.signOut().catch(() => {}).finally(() => {
+        cart=[]; saveCart();
+        try { localStorage.removeItem("sharimzharim-cart-owner"); } catch {}
+        updateAccountLink(); if (accountDialog.open) void openAccount();
+      });
+      break;
   }
 });
 
@@ -692,7 +664,7 @@ accountDialog.addEventListener("close", () => {
 setInterval(() => { if (account.token) void account.prepareHandoff(); }, 4 * 60_000);
 function refreshAccountAfterReturn() {
   if (account.token) void account.refresh().then(updateAccountLink).catch(() => {});
-  if (account.siteLogin) void pollLogin();
+  void accountAuth.poll();
 }
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshAccountAfterReturn();

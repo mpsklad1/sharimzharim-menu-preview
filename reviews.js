@@ -48,12 +48,13 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
       return;
     }
     const hasRatings = Number(summary.rating_count) > 0 && Number.isFinite(Number(summary.average)) && summary.average !== null;
+    target.hidden = !hasRatings;
+    if (!hasRatings) { target.innerHTML = ""; return; }
     target.innerHTML = `<div class="reviews-summary-number">
       <span class="reviews-summary-star" aria-hidden="true">${hasRatings ? "★" : "☆"}</span>
       ${hasRatings ? `<strong>${averageLabel(summary.average)}</strong><span class="reviews-out-of">из 5</span>` : `<strong class="reviews-no-rating">Пока нет оценок</strong>`}
       </div>
-      <div class="reviews-summary-counts"><span>${ratingLabel(summary.rating_count)}</span><span aria-hidden="true">·</span><span>${reviewLabel(summary.review_count)}</span></div>
-      <p class="reviews-trust"><span aria-hidden="true">✓</span> Оценки только после покупки</p>`;
+      <div class="reviews-summary-counts"><span>${ratingLabel(summary.rating_count)}</span><span aria-hidden="true">·</span><span>${reviewLabel(summary.review_count)}</span></div>`;
   }
 
   function reviewMarkup(review) {
@@ -71,7 +72,7 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
     const list = region("list");
     list.innerHTML = snapshot.reviews.length
       ? snapshot.reviews.map(reviewMarkup).join("")
-      : snapshot.summary ? `<div class="reviews-empty"><strong>Текстовых отзывов пока нет</strong><p>${Number(snapshot.summary.rating_count) > 0 ? "Покупатели уже поставили оценки. Здесь появятся их впечатления о блюде." : "Здесь появятся впечатления покупателей об этом блюде."}</p></div>` : "";
+      : snapshot.summary ? '<div class="reviews-empty"><strong>Отзывов ещё нет</strong></div>' : "";
     renderListControls(snapshot);
   }
 
@@ -84,7 +85,7 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
     } else if (snapshot.nextCursor !== null && snapshot.nextCursor !== undefined && snapshot.nextCursor !== "") {
       controls.innerHTML = '<button type="button" class="reviews-secondary reviews-load-more" data-reviews-action="load-more">Показать ещё</button>';
     } else {
-      controls.innerHTML = snapshot.reviews.length ? '<p class="reviews-list-end">Все текстовые отзывы загружены</p>' : "";
+      controls.innerHTML = "";
     }
   }
 
@@ -139,7 +140,7 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
         </div>
         <p id="reviews-rating-description" class="reviews-field-help">${selectedRating ? `Выбрано ${selectedRating} из 5` : "Выберите от 1 до 5 звёзд"}</p>
       </fieldset>
-      <label class="reviews-field">Имя в отзыве<input type="text" name="author" value="${escapeHtml(draft.author)}" minlength="2" maxlength="40" autocomplete="given-name" required></label>
+      <label class="reviews-field">Псевдоним<input type="text" name="author" value="${escapeHtml(draft.author)}" minlength="2" maxlength="40" autocomplete="nickname" required></label>
       <label class="reviews-field">Впечатления о блюде <span class="reviews-optional">необязательно</span><textarea name="body" rows="4" maxlength="600" aria-describedby="reviews-body-help reviews-body-count" placeholder="Что понравилось? Что можно улучшить?">${escapeHtml(draft.body)}</textarea></label>
       <div class="reviews-field-footer"><span id="reviews-body-help">Можно отправить только оценку</span><span id="reviews-body-count">${[...draft.body].length}/600</span></div>
       <p class="reviews-form-status" role="status" aria-live="polite"></p>
@@ -154,18 +155,18 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
         target.innerHTML = '<p class="reviews-muted" role="status">Проверяем, можно ли оценить блюдо…</p>';
         break;
       case "guest":
-        target.innerHTML = '<div class="reviews-eligibility"><strong>Оставить оценку можно после покупки</strong><p>Войдите в аккаунт, которым пользовались при заказе.</p><button type="button" class="reviews-secondary" data-reviews-action="login">Войти и проверить покупку</button></div>';
+        target.innerHTML = '<button type="button" class="reviews-secondary" data-reviews-action="login">Войти, чтобы оставить отзыв</button>';
         break;
       case "error":
-        target.innerHTML = '<div class="reviews-eligibility"><p class="reviews-error" role="status">Не удалось проверить покупку. Читать отзывы можно без входа.</p><button type="button" class="reviews-secondary" data-reviews-action="mine-retry">Повторить проверку</button></div>';
+        target.innerHTML = '<p class="reviews-error" role="status">Не удалось проверить покупку.</p><button type="button" class="reviews-secondary" data-reviews-action="mine-retry">Повторить</button>';
         break;
       case "blocked":
-        target.innerHTML = '<div class="reviews-eligibility"><strong>Оцените после получения заказа</strong><p>Оценка доступна покупателям этого блюда. Демо-заказ не подтверждает покупку.</p><button type="button" class="reviews-text-button" data-reviews-action="account">Мои заказы</button></div>';
+        target.innerHTML = "";
         break;
       case "eligible": {
         const review = snapshot.mine?.review;
         const notice = snapshot.saved ? `<p class="reviews-saved" role="status">${snapshot.saved}</p>` : "";
-        target.innerHTML = `${notice}<div class="reviews-write-heading"><div><h3>${review ? "Ваша оценка" : "Вы пробовали это блюдо"}</h3><p>${review ? `${Number(review.rating)} из 5${review.body ? " · отзыв опубликован" : " · без текста"}` : "Поделитесь впечатлением — это поможет другим выбрать."}</p></div>${snapshot.editorOpen ? "" : `<button type="button" class="reviews-primary" data-reviews-action="edit">${review ? "Изменить оценку" : "Оценить блюдо"}</button>`}</div>${snapshot.editorOpen ? editorMarkup(snapshot) : ""}`;
+        target.innerHTML = `${notice}<div class="reviews-write-heading"><div>${review ? `<h3>Ваша оценка</h3><p>${Number(review.rating)} из 5</p>` : ""}</div>${snapshot.editorOpen ? "" : `<button type="button" class="reviews-primary" data-reviews-action="edit">${review ? "Изменить отзыв" : "Оставить отзыв"}</button>`}</div>${snapshot.editorOpen ? editorMarkup(snapshot) : ""}`;
         break;
       }
     }
@@ -193,7 +194,7 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
       snapshot.mineStatus = mine?.can_review === true ? "eligible" : "blocked";
       snapshot.draftKey = draftKey(snapshot.product.id);
       snapshot.draft = drafts.get(snapshot.draftKey) ?? {
-        author: [...(mine?.review?.author || account.me?.name || "Гость")].slice(0, 40).join(""),
+        author: [...(mine?.review?.author || account.me?.login || account.me?.name || "Гость")].slice(0, 40).join(""),
         rating: Number(mine?.review?.rating) || 0,
         body: String(mine?.review?.body ?? "")
       };
@@ -215,11 +216,11 @@ export function createReviews({ dialog, account, accountReady, onSummary, onLogi
     };
     state = snapshot;
     dialog.innerHTML = `<div class="reviews-layout">
-      <header class="reviews-header"><button type="button" class="reviews-back" data-reviews-action="close" aria-label="Вернуться назад"><span aria-hidden="true">←</span></button><div><h2 id="reviews-title">Оценки и отзывы</h2><p>${escapeHtml(product.name)}</p></div></header>
+      <header class="reviews-header"><button type="button" class="reviews-back" data-reviews-action="close" aria-label="Вернуться назад"><span aria-hidden="true">←</span></button><div><h2 id="reviews-title">Отзывы</h2><p>${escapeHtml(product.name)}</p></div></header>
       <div class="reviews-scroll">
         <section class="reviews-summary" data-reviews-region="summary" aria-label="Общая оценка"></section>
+        <section class="reviews-reader" aria-label="Отзывы покупателей"><div data-reviews-region="list"></div><div class="reviews-list-controls" data-reviews-region="list-controls"></div></section>
         <section class="reviews-mine" data-reviews-region="mine" aria-label="Ваша оценка"></section>
-        <section class="reviews-reader" aria-label="Отзывы покупателей"><h3>Впечатления покупателей</h3><div data-reviews-region="list"></div><div class="reviews-list-controls" data-reviews-region="list-controls"></div></section>
       </div>
     </div>`;
     renderSummary(snapshot);

@@ -17,6 +17,7 @@ export class MenuAccount {
     this.handoffTicket = null;
     this.handoffIssuedAt = 0;
     this.siteLogin = null;
+    this.telegramLink = null;
   }
 
   setToken(token) {
@@ -31,6 +32,57 @@ export class MenuAccount {
     this.setToken(null);
     this.me = null;
     this.handoffTicket = null;
+    this.siteLogin = null;
+    this.telegramLink = null;
+  }
+
+  async signOut() {
+    try { if (this.token) await this.request("/auth/customer/logout", "POST", {}); }
+    finally { this.logout(); }
+  }
+
+  async passwordAuth(mode, login, password) {
+    const result = await this.request(`/auth/customer/${mode}`, "POST", { login, password }, false);
+    this.setToken(result.token);
+    this.error = null;
+    this.siteLogin = null;
+    await this.refresh();
+    void this.prepareHandoff();
+  }
+
+  async addCredentials(login, password) {
+    await this.request("/auth/customer/credentials", "POST", { login, password });
+    await this.refresh();
+  }
+
+  async startTelegramLink() {
+    const result = await this.request("/auth/link/start", "POST", {});
+    this.telegramLink = {
+      challenge: result.challenge, pollSecret: result.poll_secret,
+      url: `https://t.me/SharimZharimbot?start=link_${result.challenge}`,
+      code: result.challenge.slice(0, 6).toUpperCase(), status: "pending"
+    };
+    return this.telegramLink;
+  }
+
+  linkProof() {
+    return { challenge: this.telegramLink?.challenge, poll_secret: this.telegramLink?.pollSecret };
+  }
+
+  async pollTelegramLink() {
+    const current = this.telegramLink;
+    if (!current) return null;
+    const result = await this.request("/auth/link/poll", "POST", this.linkProof());
+    if (current === this.telegramLink) Object.assign(current, result);
+    return result;
+  }
+
+  async completeTelegramLink() {
+    const result = await this.request("/auth/link/complete", "POST", this.linkProof());
+    this.setToken(result.token);
+    this.telegramLink = null;
+    await this.refresh();
+    void this.prepareHandoff();
   }
 
   async request(path, method = "GET", body, authenticated = true) {
@@ -70,7 +122,9 @@ export class MenuAccount {
       void this.prepareHandoff();
     } catch (error) {
       this.error = error;
-      this.logout();
+      // A temporary network/server error does not invalidate a saved session.
+      if (error.status === 401) this.logout();
+      else this.me = null;
     }
   }
 
