@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {INGREDIENT_PHOTOS} from '../builder-photo-manifest.js';
 import {ingredientArt,foundationStyle,categoryStyle} from '../builder-art.js';
-import {recipeScene} from '../builder-scene.js';
+import {recipeScene,PITA_POCKET} from '../builder-scene.js';
 const pairs=Object.entries(INGREDIENT_PHOTOS).map(([id,p])=>[Number(id),p.name,0]);
 assert.equal(pairs.length,43);
 assert.equal(new Set(pairs.map(o=>{const p=ingredientArt(o).photo;return `${p.src}#${p.rect.join(',')}`;})).size,43);
@@ -26,4 +26,15 @@ for (const base of ['bun','lettuce','lavash','pita']) {
  assert.equal(new Set(scene.layers.map(l=>l.id)).size,20);
  assert.ok(scene.top<scene.bottom);
 }
+for (const selection of [...pairs.map(p=>[p]),pairs.slice(0,20),pairs.slice(27,43)]) {
+ const pita=recipeScene('pita',selection);
+ assert.deepEqual(pita.pocket,PITA_POCKET);
+ for (const layer of pita.layers) {
+  const cx=layer.x+layer.width/2,cy=layer.y+layer.height/2;
+  assert.ok((cx-120)**2/80**2+(cy-182)**2/31**2<1,'each ingredient must land inside the pita opening');
+  assert.ok(layer.y>=pita.pocket.foundation.y && layer.y+layer.height<=pita.pocket.foundation.y+pita.pocket.foundation.height,'fillings must stay within the bread, not tower above it');
+ }
+}
+assert.notEqual(recipeScene('pita',[pairs[0]]).layers[0].y,recipeScene('bun',[pairs[0]]).layers[0].y);
 console.log('PASS: 43 distinct exact photographs; coleslaw differs from lettuce; all four bases; one layer per ID; native photo proportions; no wrong fallback; whole burger differs from lower bun.');
+console.log('PASS: all individual fillings, 20 fillings and all sauces land inside the pita pocket.');

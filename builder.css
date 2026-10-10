@@ -70,6 +70,7 @@ dialog.sheet.builder-dialog {width:min(96vw,1080px);height:94dvh;max-height:94dv
 .salad-dock.is-zoomed .salad-preview {flex-basis:58%;height:calc(100% - 8px);cursor:zoom-out;}
 .salad-dock.is-zoomed .salad-dock-copy {flex:1;}
 .salad-foundation-art {position:absolute;inset:0;}
+.salad-pita-fillings {position:absolute;inset:0;z-index:1;}
 .salad-food-canvas {pointer-events:none;}
 .salad-zoom-label {position:absolute;right:5px;bottom:3px;z-index:150;font-size:9px;line-height:1;color:#dfbb92;}
 .salad-food-canvas {position:absolute;top:-17px;width:240px;height:250px;transform:scale(.55);transform-origin:0 0;}

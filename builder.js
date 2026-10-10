@@ -1,6 +1,6 @@
 import { BUILDER_ENABLED, MAX_INGREDIENTS, FOUNDATIONS, basesFor, optionsFor, validSelection, toggleIngredient, builderPrice, builderSelection } from "./builder-model.js?v=20261010-saladbar";
 import { ingredientArt, layerStyle, foundationStyle, categoryStyle } from "./builder-art.js?v=20261010-button-polish";
-import { recipeScene } from "./builder-scene.js?v=20261010-button-polish";
+import { recipeScene } from "./builder-scene.js?v=20261010-pita-pocket";
 
 const safe = value => String(value).replace(/[&<>"']/g,c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const money = value => `${new Intl.NumberFormat("ru-RU").format(value)} ₽`;
@@ -55,23 +55,31 @@ export function createMealBuilder({dialog,entry,getProducts,onOrder,toast,telegr
     return `<span class="salad-food-layer" style="${layerStyle(index)}top:${top}px;height:${height}px;z-index:${z};${extra}"></span>`;
   }
   function renderFood() {
+    // Settle an earlier flight before repainting or switching the foundation.
+    dialog.querySelectorAll(".salad-flying").forEach(el => {el.getAnimations().forEach(a => a.cancel());el.remove();});
     const base = product.builder_base;
     const scene = recipeScene(base,chosen());
     let foundation;
     if (base === "bun") foundation = foodLayer(1,177,50,0)+(scene.layers.length ? foodLayer(0,scene.bunTop,87,120) : "");
     else if (base === "lettuce") foundation = foodLayer(5,164,74,0);
-    else {
-      const index = base === "lavash" ? 14 : 15, split = base === "lavash" ? 35 : 50;
+    else if (base === "pita") {
+      const {foundation:f,backClip,frontClip} = scene.pocket;
+      const position = `left:${f.x}px;width:${f.width}px;`;
+      foundation = foodLayer(15,f.y,f.height,0,`${position}clip-path:${backClip};`)+foodLayer(15,f.y,f.height,120,`${position}clip-path:${frontClip};`);
+    } else {
+      const index = 14, split = 35;
       // Complementary clips show ONE wrap, with fillings between its back and front lip.
       foundation = foodLayer(index,164,74,0,`clip-path:inset(0 0 ${100-split}% 0);`)+foodLayer(index,164,74,120,`clip-path:inset(${split}% 0 0 0);`);
     }
     let html = '<span class="salad-plate"></span>' + `<span class="salad-foundation-art" data-foundation="${base}">${foundation}</span>`;
-    html += scene.layers.map(l => `<span class="salad-food-layer" data-ingredient-id="${l.id}" data-ingredient-name="${safe(l.name)}" data-photo-source="${safe(l.photo.src)}" style="${l.style}left:${l.x}px;top:${l.y}px;width:${l.width}px;height:${l.height}px;z-index:${l.z}"></span>`).join("");
+    const fillings = scene.layers.map(l => `<span class="salad-food-layer" data-ingredient-id="${l.id}" data-ingredient-name="${safe(l.name)}" data-photo-source="${safe(l.photo.src)}" style="${l.style}left:${l.x}px;top:${l.y}px;width:${l.width}px;height:${l.height}px;z-index:${l.z}"></span>`).join("");
+    html += scene.pocket ? `<span class="salad-pita-fillings" style="clip-path:${scene.pocket.clip}">${fillings}</span>` : fillings;
     const preview = $(".salad-preview");
     const width = preview.clientWidth || (window.innerWidth < 640 ? 132 : 144);
     const height = preview.clientHeight || (window.innerWidth < 360 ? 91 : window.innerWidth < 640 ? 103 : 115);
     const scale = Math.min(zoomed ? 1 : .6,width/240,height/(scene.bottom-scene.top+8));
-    preview.innerHTML = `<div class="salad-food-canvas" id="salad-food-canvas" aria-hidden="true" style="left:${(width-240*scale)/2}px;top:${4-scene.top*scale}px;transform:scale(${scale})">${html}</div><span class="salad-zoom-label" aria-hidden="true">${zoomed ? "Уменьшить" : "Рассмотреть"}</span>`;
+    const offsetY = scene.pocket ? Math.max(4,(height-(scene.bottom-scene.top)*scale)/2) : 4;
+    preview.innerHTML = `<div class="salad-food-canvas" id="salad-food-canvas" aria-hidden="true" style="left:${(width-240*scale)/2}px;top:${offsetY-scene.top*scale}px;transform:scale(${scale})">${html}</div><span class="salad-zoom-label" aria-hidden="true">${zoomed ? "Уменьшить" : "Рассмотреть"}</span>`;
     preview.setAttribute("aria-label",`${zoomed ? "Уменьшить изображение" : "Рассмотреть блюдо"}. ${product.name}. ${chosen().map(o => o[1]).join(", ") || "без начинки"}`);
     preview.setAttribute("aria-expanded",String(zoomed));
   }
@@ -101,17 +109,29 @@ export function createMealBuilder({dialog,entry,getProducts,onOrder,toast,telegr
   }
   function fly(button,option) {
     if (reduced() || !button.classList.contains("salad-option")) return;
-    const from = button.getBoundingClientRect(), to = $(".salad-preview").getBoundingClientRect(), frame = dialog.getBoundingClientRect();
+    const target = $(`[data-ingredient-id="${option[0]}"]`);
+    if (!target) return;
+    const from = button.getBoundingClientRect(), to = target.getBoundingClientRect(), frame = dialog.getBoundingClientRect();
     const ghost = document.createElement("span");
     ghost.className = "salad-flying"; ghost.setAttribute("aria-hidden","true");
     const art = ingredientArt(option);
     if (!art) return;
     ghost.style.cssText = art.fillingStyle;
-    ghost.style.height = `${56*art.photo.rect[3]/art.photo.rect[2]}px`;
-    ghost.style.left = `${from.left-frame.left+from.width/2-28}px`; ghost.style.top = `${from.top-frame.top+from.height/2-28}px`;
+    const height = 56*art.photo.rect[3]/art.photo.rect[2];
+    ghost.style.height = `${height}px`;
+    ghost.style.left = `${from.left-frame.left+from.width/2-28}px`; ghost.style.top = `${from.top-frame.top+from.height/2-height/2}px`;
     dialog.append(ghost);
-    const animation = ghost.animate([{transform:"translate(0,0) scale(1)",opacity:1},{transform:`translate(${to.left+to.width/2-from.left-from.width/2}px,${to.top+to.height/2-from.top-from.height/2}px) scale(.8)`,opacity:0}],{duration:250,easing:"cubic-bezier(.23,1,.32,1)"});
-    animation.onfinish = () => ghost.remove(); animation.oncancel = () => ghost.remove();
+    const dx = to.left+to.width/2-from.left-from.width/2, dy = to.top+to.height/2-from.top-from.height/2;
+    const scale = to.width/56;
+    target.style.opacity = "0";
+    const settle = () => {target.style.opacity = "";ghost.remove();};
+    const animation = ghost.animate([
+      {transform:"translate(0,0) scale(1)",opacity:1,offset:0},
+      {transform:`translate(${dx}px,${dy-22}px) scale(${scale})`,opacity:1,offset:.68},
+      {transform:`translate(${dx}px,${dy}px) scale(${scale})`,opacity:1,offset:.9},
+      {transform:`translate(${dx}px,${dy}px) scale(${scale})`,opacity:0,offset:1}
+    ],{duration:280,easing:"cubic-bezier(.23,1,.32,1)"});
+    animation.onfinish = settle; animation.oncancel = settle;
   }
   function open(nextKind,from) {
     const bases = basesFor(getProducts(),nextKind);
@@ -154,9 +174,9 @@ export function createMealBuilder({dialog,entry,getProducts,onOrder,toast,telegr
           $(".builder-feedback").textContent = result.total ? `Можно выбрать до ${MAX_INGREDIENTS} ингредиентов. Убери одну начинку, чтобы добавить другую.` : result.limit ? `В этой группе можно выбрать до ${result.limit}.` : "Этот ингредиент сейчас недоступен";
           $(".builder-feedback").hidden = false;return;
         }
-        if (result.added && event.detail > 0) fly(button,option);
         const fromRecipe = button.closest(".builder-selected");
         update();
+        if (result.added && event.detail > 0) fly(button,option);
         if (fromRecipe) {
           const next = $('[data-builder="reset"]:not([hidden])') || $(".builder-recipe h2");
           if (next.tagName === "H2") next.setAttribute("tabindex","-1");
