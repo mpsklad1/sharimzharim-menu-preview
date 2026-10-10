@@ -1,89 +1,102 @@
-.builder-entry { margin: -7px 0 28px; }
-.builder-entry-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 14px; font-weight: 750; }
-.builder-entry-heading > span:last-child { padding: 4px 6px; border-radius: 4px; color: #7d4c27; background: #f8ead6; font-size: 9px; letter-spacing: .06em; }
-.builder-entry-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.builder-entry-cards button { position: relative; min-height: 142px; padding: 15px 13px; border: 1px solid #edddc7; border-radius: 12px; overflow: hidden; text-align: left; color: #392819; background: #fff4e1; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
-.builder-entry-cards button:last-child { background: #eff3e5; border-color: #dfe6ce; }
-.builder-entry-cards strong { position: relative; z-index: 1; display: block; font-size: 18px; font-weight: 850; line-height: 1.15; letter-spacing: -.03em; }
-.builder-entry-cards svg { position: absolute; right: 6px; bottom: -4px; width: 87px; height: 79px; transform: rotate(-9deg); }
-.builder-entry-cards .icon { position: absolute; bottom: 17px; left: 13px; width: 19px; height: 19px; }
-.builder-entry-cards button:active { transform: scale(.98); }
-dialog.builder-dialog { background: #fffaf1; max-height: calc(100dvh - 8px); }
-@media (max-width:639px) { dialog.builder-dialog { inset: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; } }
-.builder-header { padding: 6px 14px; gap: 10px; border-bottom-color: #eee1cd; background: #fffaf1; }
-.builder-header .icon-button { margin: 0; width: 44px; height: 44px; background: #f3e9d9; border-radius: 50%; }
-.builder-header strong { font-size: 17px; letter-spacing: -.02em; }
-.builder-test { margin-left: auto; padding: 5px 6px; border: 1px solid #e5d2b5; border-radius: 5px; color: #8b623d; font-size: 9px; font-weight: 700; }
-.builder-scroll { padding: 12px 16px 20px; scrollbar-width: thin; }
-.builder-intro { margin: 0 0 12px; text-align: center; color: #92623d; font-size: 13px; }
-.builder-base { display: flex; align-items: center; gap: 12px; min-height: 49px; padding: 0 12px; border: 1px solid #e8dac6; border-radius: 10px; background: #fffcf6; }
-.builder-base > span { color: #8f6c4e; font-size: 12px; }
-.builder-base select { min-width: 0; flex: 1; min-height: 46px; border: 0; background: transparent; color: #35291f; font-size: 16px; font-weight: 700; text-overflow: ellipsis; }
-.builder-size { display: flex; gap: 6px; margin-top: 9px; }
-.builder-size button { flex: 1; min-height: 40px; border: 1px solid #e9dcc7; border-radius: 8px; background: #fffcf6; color: #5e4e3d; font-size: 13px; }
-.builder-size button[aria-pressed="true"] { background: #352b21; border-color: #352b21; color: #fffaf1; }
-.builder-stage { position: relative; width: min(100%, 490px); height: 330px; margin: 0 auto; isolation: isolate; }
-.builder-orbit { position: absolute; top: 27px; bottom: 38px; left: 10%; right: 10%; border: 1px dashed #deccb0; border-radius: 50%; transform: rotate(-13deg); pointer-events: none; }
-.builder-orbit::after { content: ""; position: absolute; inset: 13px; border: 1px solid #f0e3d0; border-radius: 50%; }
-.builder-chef { position: absolute; left: 50%; top: 38px; width: 180px; height: 246px; transform: translateX(-50%); pointer-events: none; }
-.builder-dish { position: absolute; left: 50%; top: 166px; width: 124px; height: 120px; transform: translateX(-50%); pointer-events: none; }
-.builder-food { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px #69432118); }
-.builder-ingredients { position: absolute; inset: 0; }
-.builder-ingredient { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; width: 96px; min-height: 88px; padding: 4px 2px; border: 0; background: transparent; color: #5e432d; transform: translateX(-50%); -webkit-tap-highlight-color: transparent; }
-.builder-ingredient.slot-0 { left: 15%; top: 4px; }
-.builder-ingredient.slot-1 { left: 85%; top: 4px; }
-.builder-ingredient.slot-2 { left: 14%; top: 113px; }
-.builder-ingredient.slot-3 { left: 86%; top: 113px; }
-.builder-ingredient.slot-4 { left: 17%; top: 222px; }
-.builder-ingredient.slot-5 { left: 83%; top: 222px; }
-.builder-ingredient-art { position: relative; display: grid; place-items: center; width: 61px; height: 61px; border: 1px solid #ecdbc2; border-radius: 50%; background: #fffef9; box-shadow: 0 4px 12px #6847240b; animation: builder-float 4.6s cubic-bezier(.45,0,.55,1) var(--float-delay) infinite; transition: background-color 160ms, border-color 160ms; }
-.builder-ingredient-art svg { width: 43px; height: 43px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
-.builder-ingredient-name { max-width: 100%; font-size: 11px; font-weight: 650; line-height: 1.18; text-align: center; overflow-wrap: anywhere; }
-.builder-ingredient small { color: #886749; font-size: 10px; }
-.builder-ingredient-check { position: absolute; right: -2px; bottom: -2px; display: none; place-items: center; width: 19px; height: 19px; border: 2px solid #fffaf1; border-radius: 50%; color: #fff; background: #d7322a; font-size: 11px; font-weight: 900; }
-.builder-ingredient[aria-pressed="true"] .builder-ingredient-art { background: #ffe0bf; border-color: #d7322a; }
-.builder-ingredient[aria-pressed="true"] .builder-ingredient-check { display: grid; }
-.builder-ingredient:active .builder-ingredient-art svg { transform: scale(.92); }
-.builder-ingredient:focus-visible { outline-offset: 3px; border-radius: 12px; }
-.builder-ingredient:focus-visible .builder-ingredient-art { animation-play-state: paused; }
-.builder-flying { position: absolute; z-index: 5; width: 48px; height: 48px; pointer-events: none; }
-.builder-flying svg { width: 100%; height: 100%; }
-.builder-instruction { margin: -4px 0 13px; color: #8b6445; font-size: 12px; text-align: center; }
-.builder-filters { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
-.builder-filters button { flex: 1; min-height: 44px; padding: 0 11px; border: 1px solid #e8dac7; border-radius: 20px; background: #fffcf6; color: #75583d; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.builder-filters button[aria-pressed="true"] { color: #fffaf1; background: #352b21; border-color: #352b21; }
-.builder-pages { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 49px; margin: 3px 0 7px; color: #8a6b50; font-size: 12px; }
-.builder-pages button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: #665039; }
-.builder-pages button:disabled { opacity: .25; cursor: default; }
-.builder-pages > span { min-width: 90px; text-align: center; }
-.builder-pages small { display: block; margin-top: 3px; font-size: 10px; }
-.builder-recipe { padding: 13px; border: 1px solid #e9d9bf; border-radius: 12px; background: #fffdf8; }
-.builder-recipe-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.builder-recipe h2, .builder-removals h2 { margin: 0; color: #392b1e; font-size: 14px; font-weight: 750; }
-.builder-reset { min-height: 44px; padding: 0; border: 0; background: transparent; color: #b13b2b; font-size: 11px; }
-.builder-recipe-empty { margin: 8px 0 0; color: #8c725a; font-size: 12px; line-height: 1.4; }
-.builder-selected { display: flex; flex-wrap: wrap; gap: 6px; }
-.builder-selected:not(:empty) { margin-top: 9px; }
-.builder-selected button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 7px; color: #793824; background: #f9e6d3; text-align: left; font-size: 12px; }
-.builder-selected button > span { font-size: 18px; color: #b04b38; }
-.builder-feedback { margin: 0 0 10px; padding: 10px; border-radius: 7px; color: #a63827; background: #fff0e9; font-size: 12px; line-height: 1.4; }
-.builder-removals { margin-top: 20px; }
-.builder-removals > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
-.builder-removals button { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 44px; padding: 8px 10px; border: 1px solid #e8dac6; border-radius: 8px; color: #775e46; background: #fffcf6; text-align: left; font-size: 12px; }
-.builder-removals button > span { opacity: 0; color: #b23829; }
-.builder-removals button[aria-pressed="true"] { background: #f9e6d3; border-color: #d9a88a; }
-.builder-removals button[aria-pressed="true"] > span { opacity: 1; }
-.builder-composition { margin-top: 16px; color: #8d7258; font-size: 12px; line-height: 1.5; }
-.builder-composition summary { min-height: 44px; padding: 12px 0; cursor: pointer; }
-.builder-composition p { margin: 0 0 10px; }
-.builder-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
-.builder-footer { gap: 18px; background: #fffaf1; border-color: #e9dcc7; }
-.builder-footer > div { min-width: 80px; display: grid; gap: 3px; }
-.builder-footer small { color: #8f6c4e; font-size: 11px; }
-.builder-footer strong { color: #392819; font-size: 22px; font-weight: 800; }
-.builder-footer .primary-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; border-radius: 10px; background: #d7322a; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
-.builder-footer .primary-button:active { transform: scale(.98); }
-@keyframes builder-float { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
-@media (hover:hover) and (pointer:fine) { .builder-ingredient:hover .builder-ingredient-art { animation-play-state: paused; border-color: #d39c72; } }
-@media (max-width:359px) { .builder-header { padding-inline: 8px; gap: 6px; } .builder-header strong { font-size: 15px; } .builder-scroll { padding-inline: 10px; } .builder-ingredient { width: 83px; } .builder-ingredient-art { width: 54px; height: 54px; } .builder-chef { width: 157px; } .builder-filters button { padding-inline: 8px; } }
-@media (prefers-reduced-motion:reduce) { .builder-ingredient-art { animation: none; } .builder-entry-cards button, .builder-ingredient-art svg, .builder-footer .primary-button { transition: none; } }
+.builder-entry {margin:-7px 0 28px;}
+.builder-entry-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:14px;font-weight:750;}
+.builder-entry-heading>span:last-child {padding:4px 6px;border-radius:4px;color:#ad3327;background:#fbe5df;font-size:9px;letter-spacing:.06em;}
+.builder-entry-cards {display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.builder-entry-cards button {position:relative;min-height:170px;padding:15px 13px;border:1px solid #382721;border-radius:12px;overflow:hidden;text-align:left;color:#fff;background:#201714;transition:transform 140ms ease-out;}
+.builder-entry-cards button:last-child {background:#2a1c15;}
+.builder-entry-cards strong {position:relative;z-index:1;display:block;font-size:18px;font-weight:850;line-height:1.15;letter-spacing:-.02em;}
+.builder-entry-photo {position:absolute;right:-3px;bottom:-1px;width:125px;height:98px;background-repeat:no-repeat;}
+.builder-entry-cards button:first-child .builder-entry-photo {background-image:url('./assets/saladbar-trays-20261010.webp');background-size:465% 465%;background-position:0 100%;}
+.builder-entry-cards button:last-child .builder-entry-photo {background-image:url('./assets/saladbar-trays-20261010.webp');background-size:465% 465%;background-position:32% 100%;}
+.builder-entry-cards .icon {position:absolute;bottom:17px;left:13px;width:19px;height:19px;z-index:1;}
+.builder-entry-cards button:active {transform:scale(.98);}
+dialog.sheet.builder-dialog {width:min(96vw,1080px);height:94dvh;max-height:94dvh;background:#161310;color:#fff;border:1px solid #4b3f36;}
+.builder-dialog button {font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.builder-dialog button:focus-visible {outline:3px solid #ffd27e;outline-offset:3px;}
+.builder-header {padding:8px 16px;gap:12px;border-color:#3e332c;background:#161310;}
+.builder-header .icon-button {margin:0;width:44px;height:44px;background:#302923;border-radius:50%;color:#fff;}
+.builder-header strong {font-size:21px;letter-spacing:-.035em;}
+.builder-header strong>span {color:#ea4739;}
+.salad-header-caption {margin-left:auto;color:#c5b29d;font-size:12px;}
+.builder-scroll {padding:0 18px 24px;scrollbar-width:thin;scrollbar-color:#7a6755 #211b16;}
+.salad-welcome {padding:19px 0 15px;}
+.salad-welcome h1 {margin:0;font-size:26px;font-weight:850;letter-spacing:-.045em;line-height:1.15;}
+.salad-categories,.salad-foundations {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.salad-categories button,.salad-foundations button {display:flex;align-items:center;justify-content:center;gap:12px;min-height:62px;padding:4px 12px;border:1px solid #5e5147;border-radius:14px;background:#29231e;color:#fff;font-size:18px;font-weight:750;transition:background-color 160ms,border-color 160ms,transform 140ms ease-out;}
+.salad-categories button[aria-pressed=true] {background:#7c211b;border-color:#f65344;box-shadow:inset 0 0 0 1px #e34638;}
+.salad-foundations {margin-top:8px;}
+.salad-foundations button {min-height:58px;border-radius:12px;font-size:15px;color:#e6ded7;}
+.salad-foundations button[aria-pressed=true] {background:#43241c;border-color:#e9623c;color:#fff;}
+.salad-base-photo {display:block;flex:none;width:64px;height:44px;background-repeat:no-repeat;filter:drop-shadow(0 3px 3px #0004);}
+.salad-instruction {margin:13px 0 17px;color:#c5b3a2;font-size:12px;line-height:1.4;}
+.salad-section-title {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 4px;}
+.salad-section-title h2 {margin:0;font-size:15px;font-weight:750;letter-spacing:-.01em;}
+.salad-section-title>span {font-size:11px;color:#d4bea8;}
+.salad-sauce-station {position:relative;margin:0 -4px 0;padding:0 8px 9px;border:1px solid #746253;border-bottom:4px solid #b6a68f;border-radius:9px 9px 0 0;background:linear-gradient(110deg,#33271d,#614633 44%,#31251b);box-shadow:inset 0 1px 1px #d6b58b66,0 5px 12px #0004;}
+.salad-sauce-rack {display:flex;gap:6px;overflow-x:auto;padding:3px 4px 8px;scrollbar-width:thin;scrollbar-color:#ba9671 #342820;overscroll-behavior-x:contain;}
+.salad-option {position:relative;min-width:0;padding:0;border:0;color:#fff;cursor:pointer;transition:transform 140ms ease-out;}
+.salad-option:active,.salad-categories button:active,.salad-foundations button:active {transform:scale(.97);}
+.salad-option-photo {display:block;background-repeat:no-repeat;}
+.salad-bottle {flex:0 0 85px;min-height:129px;border-radius:10px;background:transparent;}
+.salad-bottle .salad-option-photo {height:101px;margin:0 3px;border-radius:9px 9px 3px 3px;}
+.salad-option-label {display:flex;align-items:center;justify-content:center;min-height:34px;padding:3px 5px;font-size:12px;font-weight:650;line-height:1.15;text-align:center;overflow-wrap:anywhere;}
+.salad-bottle .salad-option-label {position:relative;margin-top:-30px;min-height:40px;border-radius:5px;color:#fff;background:#171411;box-shadow:0 2px 3px #0006;}
+.salad-option small {display:block;padding:0 3px 5px;font-size:11px;}
+.salad-check {position:absolute;right:5px;top:5px;display:grid;place-items:center;width:24px;height:24px;border:2px solid #fff;border-radius:50%;background:#e04331;color:#fff;font-size:14px;font-weight:800;opacity:0;transition:opacity 140ms;}
+.salad-option[aria-pressed=true] .salad-check {opacity:1;}
+.salad-bottle[aria-pressed=true] .salad-option-label {background:#a63124;}
+.salad-steel-bar {padding:5px 8px 12px;border:1px solid #a59786;border-radius:0 0 9px 9px;background:linear-gradient(113deg,#b7aba0,#e2d8c8 5%,#8e8175 18%,#c2b4a3 32%,#8c7967 60%,#c5b7a3 76%,#e1d4c2 92%,#9a8975);box-shadow:inset 0 0 0 3px #332a2180,0 7px 16px #0005;}
+.salad-steel-bar .salad-section-title {color:#fff;text-shadow:0 1px 2px #000;}
+.salad-pans {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;}
+.salad-section:nth-child(2) .salad-pans {grid-template-columns:repeat(5,minmax(0,1fr));}
+.salad-section:nth-child(3) .salad-pans {grid-template-columns:repeat(3,minmax(0,1fr));}
+.salad-pan {padding:5px;border:1px solid #ece6d8;border-radius:10px;background:linear-gradient(145deg,#ddd4c7,#72675b 17%,#bdafa0 37%,#f6eddd 59%,#5b4b3c 87%);box-shadow:0 2px 3px #0008,inset 0 0 0 2px #554638;}
+.salad-pan .salad-option-photo {height:112px;border-radius:6px;box-shadow:inset 0 2px 5px #0008;}
+.salad-pan .salad-option-label {position:relative;min-height:37px;margin-top:-10px;padding:4px 6px;border:1px solid #685b4d;border-radius:6px;background:#211a15;box-shadow:0 2px 3px #0007;}
+.salad-pan[aria-pressed=true] {border-color:#ff8e59;box-shadow:0 0 0 2px #ed5236,0 3px 6px #0008;}
+.salad-pan[aria-pressed=true] .salad-option-label {background:#8e2c21;border-color:#f56a43;}
+.builder-recipe {margin-top:20px;padding:16px;border:1px solid #554437;border-radius:12px;background:#211b16;scroll-margin-top:12px;}
+.builder-recipe-heading {display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.builder-recipe h2 {margin:0;font-size:17px;}
+.builder-recipe-heading button {min-height:44px;padding:0 6px;border:0;background:transparent;color:#ff9e77;font-size:12px;}
+.salad-base-name,.builder-recipe-empty {margin:9px 0;color:#c5b3a2;font-size:13px;line-height:1.4;}
+.builder-selected {display:flex;flex-wrap:wrap;gap:7px;}
+.builder-selected button {display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:1px solid #594635;border-radius:8px;background:#34291f;color:#f9ede0;font-size:12px;text-align:left;}
+.builder-selected button>span {color:#ef9776;font-size:20px;}
+.builder-status {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+.salad-dock {flex:none;display:flex;align-items:center;gap:10px;height:116px;padding:0 14px;border-top:1px solid #5a4635;background:linear-gradient(130deg,#31241a,#17120e);box-shadow:0 -6px 14px #0003;}
+.salad-preview {position:relative;flex:0 0 144px;height:115px;overflow:hidden;}
+.salad-food-canvas {position:relative;top:-17px;width:240px;height:250px;transform:scale(.55);transform-origin:0 0;}
+.salad-food-layer {position:absolute;left:25px;width:190px;background-repeat:no-repeat;filter:drop-shadow(0 2px 1px #0003);}
+.salad-plate {position:absolute;left:4px;top:212px;width:234px;height:29px;border:2px solid #65513d;border-radius:50%;background:radial-gradient(ellipse,#463025,#21160f 65%,#78624c);box-shadow:0 6px 5px #0009;}
+.salad-sauce-drizzle {position:absolute;left:38px;width:164px;height:8px;border-radius:40% 35% 50% 25%;opacity:.94;box-shadow:0 1px 2px #0003;}
+.salad-dock-copy {min-width:0;display:grid;align-content:center;gap:7px;}
+.salad-dock-copy>strong {font-size:18px;line-height:1.2;}
+.salad-recipe-link {padding:0;border:0;background:transparent;text-align:left;color:#ffc48f;font-size:13px;min-height:44px;}
+.builder-feedback {flex:none;margin:0;padding:10px 14px;color:#ffbe94;background:#50241c;font-size:12px;line-height:1.35;}
+.salad-dock-subtitle {color:#bca791;font-size:11px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.builder-footer {gap:20px;min-height:76px;border-color:#48382c;background:#17120f;color:#fff;}
+.builder-footer>div {display:grid;gap:3px;min-width:76px;}
+.builder-footer small {color:#bca791;font-size:11px;}
+.builder-footer strong {color:#fff;font-size:23px;font-weight:800;}
+.builder-footer .primary-button {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:50px;border-radius:12px;background:#c83327;color:#fff;transition:transform 140ms ease-out,opacity 140ms;}
+.builder-footer .primary-button:disabled {opacity:.4;cursor:default;}
+.builder-footer .primary-button:active {transform:scale(.98);}
+.salad-flying {position:absolute;z-index:1000;width:56px;height:56px;background-repeat:no-repeat;pointer-events:none;filter:drop-shadow(0 3px 3px #0008);}
+.salad-flying-drop {display:block;width:25px;height:25px;margin:15px;border-radius:55% 55% 55% 8%;transform:rotate(-45deg);box-shadow:inset 3px 3px 4px #fff4;}
+@media (min-width:800px) {.salad-welcome,.salad-categories,.salad-foundations,.salad-instruction {max-width:620px;margin-left:auto;margin-right:auto;}.salad-welcome {text-align:center;}.salad-dock {justify-content:center;}}
+@media (max-width:639px) {
+  dialog.sheet.builder-dialog {inset:0;width:100%;max-width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;border-radius:0;}
+  .builder-header {padding:6px 12px;}.builder-header strong {font-size:20px;}.salad-header-caption {font-size:10px;}
+  .builder-scroll {padding:0 12px 20px;}.salad-welcome {padding:16px 0 13px;}.salad-welcome h1 {font-size:25px;}
+  .salad-categories button {min-height:58px;font-size:17px;gap:7px;padding-inline:8px;}.salad-foundations button {min-height:52px;gap:10px;}.salad-base-photo {width:52px;height:38px;}
+  .salad-instruction {font-size:11px;margin:11px 0 14px;}.salad-pans,.salad-section:nth-child(2) .salad-pans {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+  .salad-section:nth-child(3) .salad-pans {grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+  .salad-pan .salad-option-photo {height:112px;}.salad-section:nth-child(3) .salad-option-photo {height:85px;}.salad-pan .salad-option-label {font-size:12px;min-height:35px;}
+  .salad-bottle {flex-basis:77px;min-height:122px;}.salad-bottle .salad-option-photo {height:99px;}.salad-bottle .salad-option-label {font-size:11px;}
+  .salad-dock {height:105px;gap:7px;padding-inline:9px;}.salad-preview {flex-basis:132px;height:103px;}.salad-food-canvas {transform:scale(.5);top:-18px;}.salad-dock-copy>strong {font-size:17px;}.salad-recipe-link {font-size:12px;}.salad-dock-subtitle {font-size:10px;}
+  .builder-footer {min-height:76px;padding:10px 13px max(10px,env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px));}
+}
+@media (max-width:359px) {.salad-header-caption {display:none;}.builder-scroll {padding-inline:9px;}.salad-welcome h1 {font-size:23px;}.salad-pan .salad-option-photo {height:100px;}.salad-section:nth-child(3) .salad-option-photo {height:74px;}.salad-pan .salad-option-label {font-size:11px;}.salad-dock-subtitle {display:none;}.salad-dock {height:94px;}.salad-preview {height:91px;}.salad-food-canvas {transform:scale(.46);top:-19px;}}
+@media (hover:hover) and (pointer:fine) {.salad-option:hover .salad-option-label {background:#563326;}.salad-foundations button:hover {border-color:#be8f65;}}
+@media (prefers-reduced-motion:reduce) {.builder-dialog button,.salad-option,.salad-check,.builder-entry-cards button {transition:none;}}

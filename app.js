@@ -136,7 +136,7 @@ function renderProductCards(items) {
 function renderProducts() {
   const query = search.value.trim().toLocaleLowerCase("ru-RU");
   if (query) {
-    const matches = products.filter(product =>
+    const matches = products.filter(product => !product.builder_kind &&
       `${product.name} ${product.description}`.toLocaleLowerCase("ru-RU").includes(query));
     menuSections.innerHTML = `<section class="menu-section" aria-labelledby="search-results-title">
       <h1 id="search-results-title">Результаты поиска</h1>
@@ -279,6 +279,7 @@ function openProduct(id) {
       </div>
     </div>`;
   productDialog.showModal();
+  telegram?.BackButton?.show?.();
   document.body.classList.add("modal-open");
 
 }
@@ -336,7 +337,7 @@ function addToCart() {
 
 let mealBuilder = {close() {}};
 // Keep the standard menu usable if the optional prototype cannot load.
-if (builderDialog && $("#builder-entry")) void import("./builder.js?v=20261010-builder").then(({createMealBuilder}) => {
+if (builderDialog && $("#builder-entry")) void import("./builder.js?v=20261010-saladbar").then(({createMealBuilder}) => {
   mealBuilder = createMealBuilder({
   dialog: builderDialog, entry: $("#builder-entry"), getProducts: () => products,
   telegram, toast: showToast,
@@ -386,6 +387,7 @@ function openCart() {
   renderCart();
   cartDialog.showModal();
   document.body.classList.add("modal-open");
+  telegram?.BackButton?.show?.();
 }
 
 async function checkout() {
@@ -499,6 +501,9 @@ $("#game-back").addEventListener("click", closeGame);
 telegram?.BackButton?.onClick?.(() => {
   if (builderDialog?.open) mealBuilder.close();
   else if (reviewsDialog.open) reviewUI.close();
+  else if (cartDialog.open) cartDialog.close();
+  else if (productDialog.open) productDialog.close();
+  else if (accountDialog.open) accountDialog.close();
   else closeGame();
 });
 window.addEventListener("message", event => {
@@ -598,6 +603,7 @@ async function openAccount() {
   accountDialog.innerHTML = `<div class="sheet-layout"><div class="sheet-header"><strong>Мой аккаунт</strong><button type="button" class="icon-button" data-action="close" aria-label="Закрыть"><span class="icon icon-x" aria-hidden="true"></span></button></div><div class="sheet-scroll"><p class="account-empty">Загрузка...</p></div></div>`;
   if (!accountDialog.open) accountDialog.showModal();
   document.body.classList.add("modal-open");
+  telegram?.BackButton?.show?.();
   await accountReady;
   if (seq !== accountRenderSeq || !accountDialog.open) return;
   if (!account.token) {
@@ -656,7 +662,10 @@ accountDialog.addEventListener("click", event => {
 
 for (const dialog of [productDialog, reviewsDialog, cartDialog, accountDialog, builderDialog].filter(Boolean)) {
   dialog.addEventListener("close", () => {
-    if (![productDialog, reviewsDialog, cartDialog, accountDialog, builderDialog].some(d => d?.open)) document.body.classList.remove("modal-open");
+    if (![productDialog, reviewsDialog, cartDialog, accountDialog, builderDialog].some(d => d?.open)) {
+      document.body.classList.remove("modal-open");
+      if (gameView.hidden) telegram?.BackButton?.hide?.();
+    }
   });
 }
 
@@ -672,7 +681,7 @@ const reviewUI = createReviews({
   onAccount: () => { reviewUI.close(); void openAccount(); }
 });
 reviewsDialog.addEventListener("close", () => {
-  if (gameView.hidden && !reviewsDialog.open) telegram?.BackButton?.hide?.();
+  if (gameView.hidden && !document.querySelector("dialog[open]")) telegram?.BackButton?.hide?.();
 });
 accountDialog.addEventListener("close", () => {
   if (!reviewProductAfterLogin) return;
@@ -716,8 +725,9 @@ async function loadCatalog(restore = true) {
     const data=await response.json();
     products=data.products;
     const labels=p=>p.category==="На булке" ? "Бургеры" : p.category;
-    categories=[...new Set(["Шаверма","Бургеры","В листьях","Курица","Фритюр","Закуски",...products.map(labels)])]
-      .filter(c=>products.some(p=>labels(p)===c));
+    const ordinaryProducts=products.filter(p=>!p.builder_kind);
+    categories=[...new Set(["Шаверма","Бургеры","В листьях","Курица","Фритюр","Закуски",...ordinaryProducts.map(labels)])]
+      .filter(c=>ordinaryProducts.some(p=>labels(p)===c));
     byId.clear();products.forEach(p=>byId.set(p.id,p));
     catalogReady=true;cart=loadCart();
     renderCategories();renderProducts();renderCartButton();syncActiveCategory();
