@@ -1,11 +1,11 @@
 .menu-actions {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 22px;}
 .menu-actions:has(.constructor-action[hidden]) {grid-template-columns:1fr;}
-.menu-actions .menu-action {position:relative;display:block;min-width:0;min-height:108px;margin:0;padding:13px 12px;border:1px solid #3b2a23;border-radius:10px;overflow:hidden;background:#241c17;color:#fff;text-align:left;text-decoration:none;transition:transform 140ms ease-out;}
-.menu-actions .constructor-action {display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;background:#78251d;border-color:#95372b;cursor:pointer;font-family:inherit;}
+.menu-actions .menu-action {position:relative;display:block;min-width:0;min-height:108px;margin:0;padding:13px 12px;border:1px solid #252525;border-radius:10px;overflow:hidden;background:#252525;color:#fff;text-align:left;text-decoration:none;transition:transform 140ms ease-out;}
+.menu-actions .constructor-action {display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;cursor:pointer;font-family:inherit;}
 .menu-action strong {position:relative;z-index:1;display:block;font-size:18px;font-weight:800;line-height:1.12;letter-spacing:-.02em;}
-.menu-action-caption {position:relative;z-index:1;display:block;margin-top:4px;font-size:11px;line-height:1.3;color:#f6d3be;}
-.menu-action-image {position:absolute;right:1px;bottom:-6px;width:78px;height:64px;object-fit:contain;background-repeat:no-repeat;}
-.constructor-action-image {bottom:0;right:0;height:50px;background-image:url('./assets/saladbar-trays-20261010.webp');background-size:465.455% 476.279%;background-position:2.902% 100%;}
+.menu-action-caption {position:relative;z-index:1;display:block;margin-top:4px;font-size:12px;font-weight:650;line-height:1.3;color:#fff;white-space:nowrap;}
+.menu-action-image {position:absolute;right:1px;bottom:-12px;width:84px;height:67px;object-fit:contain;background-repeat:no-repeat;pointer-events:none;}
+.constructor-action-image {bottom:-3px;right:5px;width:calc(100% - 16px);max-width:152px;height:62px;}
 .menu-action .icon-promo-arrow {position:absolute;right:9px;top:9px;width:15px;height:15px;}
 .menu-actions .menu-action:active {transform:scale(.98);}
 .menu-actions .menu-action:focus-visible {outline:3px solid #b74b30;outline-offset:3px;}
@@ -27,6 +27,7 @@ dialog.sheet.builder-dialog {width:min(96vw,1080px);height:94dvh;max-height:94dv
 .salad-foundations button {min-height:58px;border-radius:12px;font-size:15px;color:#e6ded7;}
 .salad-foundations button[aria-pressed=true] {background:#43241c;border-color:#e9623c;color:#fff;}
 .salad-base-photo {display:block;flex:none;width:64px;height:44px;background-repeat:no-repeat;filter:drop-shadow(0 3px 3px #0004);}
+.salad-category-photo {width:calc(44px * var(--meal-ratio));}
 .salad-instruction {margin:13px 0 17px;color:#c5b3a2;font-size:12px;line-height:1.4;}
 .salad-section-title {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 4px;}
 .salad-section-title h2 {margin:0;font-size:15px;font-weight:750;letter-spacing:-.01em;}
@@ -93,6 +94,7 @@ dialog.sheet.builder-dialog {width:min(96vw,1080px);height:94dvh;max-height:94dv
   .builder-header {padding:6px 12px;}.builder-header strong {font-size:20px;}.salad-header-caption {font-size:10px;}
   .builder-scroll {padding:0 12px 20px;}.salad-welcome {padding:16px 0 13px;}.salad-welcome h1 {font-size:25px;}
   .salad-categories button {min-height:58px;font-size:17px;gap:7px;padding-inline:8px;}.salad-foundations button {min-height:52px;gap:10px;}.salad-base-photo {width:52px;height:38px;}
+  .salad-category-photo {width:calc(38px * var(--meal-ratio));}
   .salad-instruction {font-size:11px;margin:11px 0 14px;}.salad-pans,.salad-section:nth-child(2) .salad-pans {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
   .salad-section:nth-child(3) .salad-pans {grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
   .salad-pan .salad-option-photo {height:112px;}.salad-section:nth-child(3) .salad-option-photo {height:85px;}.salad-pan .salad-option-label {font-size:12px;min-height:35px;}
@@ -101,5 +103,6 @@ dialog.sheet.builder-dialog {width:min(96vw,1080px);height:94dvh;max-height:94dv
   .builder-footer {min-height:76px;padding:10px 13px max(10px,env(safe-area-inset-bottom),var(--tg-safe-area-inset-bottom,0px));}
 }
 @media (max-width:359px) {.salad-header-caption {display:none;}.builder-scroll {padding-inline:9px;}.salad-welcome h1 {font-size:23px;}.salad-pan .salad-option-photo {height:100px;}.salad-section:nth-child(3) .salad-option-photo {height:74px;}.salad-pan .salad-option-label {font-size:11px;}.salad-dock-subtitle {display:none;}.salad-dock {height:94px;}.salad-preview {height:91px;}.salad-food-canvas {transform:scale(.46);top:-19px;}}
+@media (max-width:359px) {.menu-action strong {font-size:16px;}.menu-action-caption {font-size:11px;}}
 @media (hover:hover) and (pointer:fine) {.salad-option:hover .salad-option-label {background:#563326;}.salad-foundations button:hover {border-color:#be8f65;}}
 @media (prefers-reduced-motion:reduce) {.builder-dialog button,.salad-option,.salad-check,.menu-action {transition:none;}}

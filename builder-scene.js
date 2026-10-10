@@ -1,4 +1,4 @@
-import { ingredientArt } from "./builder-art.js?v=20261010-details";
+import { ingredientArt } from "./builder-art.js?v=20261010-button-polish";
 
 // A scene contains exactly one logical foundation and one photographed layer per chosen ID.
 // All layer heights follow the photograph's proportions; no shared lettuce substitutes.

@@ -26,7 +26,8 @@ export const FOUNDATION_LAYER = {bun:1,lettuce:5,lavash:14,pita:15};
 export function layerStyle(index) {return crop(LAYERS,layerRects[index],1280);}
 export function foundationStyle(id) {return layerStyle(FOUNDATION_LAYER[id]);}
 export function categoryStyle(kind) {
-  return crop(TRAYS,kind === "burger" ? [35,809,330,215] : [386,804,390,220]);
+  const rect = kind === "burger" ? [41,114,807,655] : [914,146,817,612];
+  return photoStyle({src:"./assets/menu-meals-20261010.webp",size:[1774,887],rect})+`--meal-ratio:${rect[2]/rect[3]};`;
 }
 export function photoStyle(photo) {
   const [sw,sh] = photo.size, [x,y,w,h] = photo.rect;

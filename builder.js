@@ -1,6 +1,6 @@
 import { BUILDER_ENABLED, MAX_INGREDIENTS, FOUNDATIONS, basesFor, optionsFor, validSelection, toggleIngredient, builderPrice, builderSelection } from "./builder-model.js?v=20261010-saladbar";
-import { ingredientArt, layerStyle, foundationStyle, categoryStyle } from "./builder-art.js?v=20261010-details";
-import { recipeScene } from "./builder-scene.js?v=20261010-details";
+import { ingredientArt, layerStyle, foundationStyle, categoryStyle } from "./builder-art.js?v=20261010-button-polish";
+import { recipeScene } from "./builder-scene.js?v=20261010-button-polish";
 
 const safe = value => String(value).replace(/[&<>"']/g,c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
 const money = value => `${new Intl.NumberFormat("ru-RU").format(value)} ₽`;
