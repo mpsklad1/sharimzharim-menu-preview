@@ -1,3 +1,4 @@
+import { INGREDIENT_PHOTOS } from "./builder-photo-manifest.js?v=20261010-details";
 // Photographs generated with imagegen. CSS crops preserve the approved camera angle.
 export const TRAYS = "./assets/saladbar-trays-20261010.webp";
 export const BOTTLES = "./assets/saladbar-bottle-atlas-20261010.webp";
@@ -21,14 +22,27 @@ const layerRects = [
   [15,696,299,168],[334,693,286,185],[636,700,299,187],[955,694,284,183],
   [13,969,298,206],[331,980,294,194],[646,997,281,156],[951,985,291,173]
 ];
-export const FOUNDATION_LAYER = {bun:0,lettuce:5,lavash:14,pita:15};
+export const FOUNDATION_LAYER = {bun:1,lettuce:5,lavash:14,pita:15};
 export function layerStyle(index) {return crop(LAYERS,layerRects[index],1280);}
 export function foundationStyle(id) {return layerStyle(FOUNDATION_LAYER[id]);}
-const layerMap = [2,11,12,12,7,7,9,13,3,3,4,8,8,5,5,5,6,6,6,6,10,10,8,4,5,12,10];
+export function categoryStyle(kind) {
+  return crop(TRAYS,kind === "burger" ? [35,809,330,215] : [386,804,390,220]);
+}
+export function photoStyle(photo) {
+  const [sw,sh] = photo.size, [x,y,w,h] = photo.rect;
+  return `background-image:url('${photo.src}');background-size:${sw/w*100}% ${sh/h*100}%;background-position:${x/(sw-w)*100}% ${y/(sh-h)*100}%;`;
+}
+const widths = [174,169,177,174,177,177,177,160,185,148,174,163,162,186,162,166,168,168,170,166,158,161,150,161,155,176,112];
+const lifts = [19,21,23,21,12,12,18,25,10,20,15,12,12,19,21,29,14,14,17,17,19,22,13,23,16,22,6];
+const order = [10,12,14,14,22,22,24,12,30,31,50,52,53,40,41,42,55,56,57,58,32,33,59,60,61,62,70];
 export function ingredientArt(option) {
   const id = option[0];
-  if (id >= 1001 && id <= 1027) return {style:crop(TRAYS,foodRects[id-1001]),layer:layerMap[id-1001],sauce:false};
-  if (id >= 1101 && id <= 1116) return {style:crop(BOTTLES,bottleRects[id-1101],1280),sauce:true,
-    color:["#99a34c","#c43624","#532519","#d53220","#edb327","#e6ded0","#dc8c83","#ca3827","#512219","#c95631","#eee2c6","#f2e8d6","#e96826","#b32519","#d4a42a","#cdb084"][id-1101]};
-  return {style:layerStyle(5),layer:5,sauce:false};
+  const photo = INGREDIENT_PHOTOS[id];
+  // Never display a different ingredient as a fallback for a missing photograph.
+  if (!photo) return null;
+  if (id >= 1001 && id <= 1027) return {id,photo,style:crop(TRAYS,foodRects[id-1001]),fillingStyle:photoStyle(photo),
+    width:widths[id-1001],lift:lifts[id-1001],order:order[id-1001],sauce:false};
+  if (id >= 1101 && id <= 1116) return {id,photo,style:crop(BOTTLES,bottleRects[id-1101],1280),fillingStyle:photoStyle(photo),
+    width:126,lift:8,order:100+id-1101,sauce:true};
+  return null;
 }

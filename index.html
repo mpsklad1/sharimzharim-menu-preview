@@ -14,9 +14,9 @@
   <link rel="icon" type="image/png" href="./assets/icon.png">
   <link rel="stylesheet" href="./style.css?v=20261008-password-auth">
   <link rel="stylesheet" href="./reviews.css?v=20261008-password-auth">
-  <link rel="stylesheet" href="./builder.css?v=20261010-saladbar">
+  <link rel="stylesheet" href="./builder.css?v=20261010-details">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script type="module" src="./app.js?v=20261010-saladbar"></script>
+  <script type="module" src="./app.js?v=20261010-details"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -40,20 +40,17 @@
 
     <main class="catalog">
       <button class="account-link" id="account-link" type="button"><span id="account-link-label">Личный кабинет</span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>
-      <a class="game-promo" id="game-promo" href="./game/" aria-label="Поймай скидку — открыть игру">
-        <span class="game-promo-copy">
-          <span class="game-promo-kicker">ИГРА #ШАРИМЖАРИМ</span>
-          <strong>Поймай скидку</strong>
-        </span>
-        <img class="game-promo-image" src="./assets/game-burger.png" alt="" width="512" height="512">
-        <span class="icon icon-promo-arrow" aria-hidden="true"></span>
-      </a>
-      <section class="builder-entry" id="builder-entry" aria-label="Приготовь по своему вкусу" hidden>
-        <div class="builder-entry-heading"><span>Собери по своему вкусу</span><span>НОВОЕ</span></div>
-        <div class="builder-entry-cards">
-          <button type="button" data-build-meal="burger"><strong>Приготовь<br>бургер</strong><span class="builder-entry-photo" aria-hidden="true"></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>
-          <button type="button" data-build-meal="shawarma"><strong>Приготовь<br>шаурму</strong><span class="builder-entry-photo" aria-hidden="true"></span><span class="icon icon-promo-arrow" aria-hidden="true"></span></button>
-        </div>
+      <section class="menu-actions" aria-label="Скидка и свой рецепт">
+        <a class="game-promo menu-action" id="game-promo" href="./game/" aria-label="Поймай скидку — открыть игру">
+          <strong>Поймай<br>скидку</strong>
+          <img class="menu-action-image" src="./assets/game-burger.png" alt="" width="512" height="512">
+          <span class="icon icon-promo-arrow" aria-hidden="true"></span>
+        </a>
+        <button class="menu-action constructor-action" id="builder-entry" type="button" data-build-meal="burger" aria-label="Приготовь бургер или шаурму" hidden>
+          <strong>Приготовь</strong><span class="menu-action-caption">бургер или шаурму</span>
+          <span class="menu-action-image constructor-action-image" aria-hidden="true"></span>
+          <span class="icon icon-promo-arrow" aria-hidden="true"></span>
+        </button>
       </section>
       <div id="menu-sections"></div>
       <p class="catalog-note">Цены и оформление заказа показаны для демо.</p>
