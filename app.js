@@ -28,6 +28,7 @@ const productDialog = $("#product-dialog");
 const reviewsDialog = $("#reviews-dialog");
 const cartDialog = $("#cart-dialog");
 const accountDialog = $("#account-dialog");
+const builderDialog = $("#builder-dialog");
 const gamePromo = $("#game-promo");
 const gameView = $("#game-view");
 const gameFrame = $("#game-frame");
@@ -333,6 +334,23 @@ function addToCart() {
   showToast("Добавлено в корзину");
 }
 
+let mealBuilder = {close() {}};
+// Keep the standard menu usable if the optional prototype cannot load.
+if (builderDialog && $("#builder-entry")) void import("./builder.js?v=20261010-builder").then(({createMealBuilder}) => {
+  mealBuilder = createMealBuilder({
+  dialog: builderDialog, entry: $("#builder-entry"), getProducts: () => products,
+  telegram, toast: showToast,
+  onOrder: line => {
+    const existing = cart.find(item => item.itemId === line.itemId && item.half === line.half && item.xl === line.xl &&
+      JSON.stringify(item.optionIds) === JSON.stringify(line.optionIds));
+    if (existing) existing.count = Math.min(99, existing.count + 1);
+    else cart.push(line);
+    saveCart(); openCart();
+    telegram?.HapticFeedback?.impactOccurred?.("light");
+  }
+  });
+}).catch(() => { $("#builder-entry").hidden = true; });
+
 function showToast(message) {
   const toast = $("#toast");
   clearTimeout(toastTimer);
@@ -375,7 +393,7 @@ async function checkout() {
   if (checkoutButton?.disabled) return;
   if (checkoutButton) checkoutButton.disabled = true;
   if (!account.token) {
-    showToast("Войдите через Telegram, чтобы сохранить заказ в общей истории");
+    showToast("Войдите в аккаунт, чтобы сохранить заказ в истории");
     if (checkoutButton) checkoutButton.disabled = false;
     cartDialog.close();
     void openAccount();
@@ -479,7 +497,8 @@ gamePromo.addEventListener("click", event => {
 });
 $("#game-back").addEventListener("click", closeGame);
 telegram?.BackButton?.onClick?.(() => {
-  if (reviewsDialog.open) reviewUI.close();
+  if (builderDialog?.open) mealBuilder.close();
+  else if (reviewsDialog.open) reviewUI.close();
   else closeGame();
 });
 window.addEventListener("message", event => {
@@ -635,9 +654,9 @@ accountDialog.addEventListener("click", event => {
   }
 });
 
-for (const dialog of [productDialog, reviewsDialog, cartDialog, accountDialog]) {
+for (const dialog of [productDialog, reviewsDialog, cartDialog, accountDialog, builderDialog].filter(Boolean)) {
   dialog.addEventListener("close", () => {
-    if (!productDialog.open && !reviewsDialog.open && !cartDialog.open && !accountDialog.open) document.body.classList.remove("modal-open");
+    if (![productDialog, reviewsDialog, cartDialog, accountDialog, builderDialog].some(d => d?.open)) document.body.classList.remove("modal-open");
   });
 }
 
@@ -711,4 +730,4 @@ async function loadCatalog(restore = true) {
   }
 }
 void loadCatalog();
-setInterval(()=>{if(!document.hidden&&!productDialog.open&&!reviewsDialog.open&&!cartDialog.open)void loadCatalog(false);},60000);
+setInterval(()=>{if(!document.hidden&&!productDialog.open&&!reviewsDialog.open&&!cartDialog.open&&!builderDialog?.open)void loadCatalog(false);},60000);

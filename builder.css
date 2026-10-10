@@ -1,0 +1,89 @@
+.builder-entry { margin: -7px 0 28px; }
+.builder-entry-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; font-size: 14px; font-weight: 750; }
+.builder-entry-heading > span:last-child { padding: 4px 6px; border-radius: 4px; color: #7d4c27; background: #f8ead6; font-size: 9px; letter-spacing: .06em; }
+.builder-entry-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.builder-entry-cards button { position: relative; min-height: 142px; padding: 15px 13px; border: 1px solid #edddc7; border-radius: 12px; overflow: hidden; text-align: left; color: #392819; background: #fff4e1; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.builder-entry-cards button:last-child { background: #eff3e5; border-color: #dfe6ce; }
+.builder-entry-cards strong { position: relative; z-index: 1; display: block; font-size: 18px; font-weight: 850; line-height: 1.15; letter-spacing: -.03em; }
+.builder-entry-cards svg { position: absolute; right: 6px; bottom: -4px; width: 87px; height: 79px; transform: rotate(-9deg); }
+.builder-entry-cards .icon { position: absolute; bottom: 17px; left: 13px; width: 19px; height: 19px; }
+.builder-entry-cards button:active { transform: scale(.98); }
+dialog.builder-dialog { background: #fffaf1; max-height: calc(100dvh - 8px); }
+@media (max-width:639px) { dialog.builder-dialog { inset: 0; width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; } }
+.builder-header { padding: 6px 14px; gap: 10px; border-bottom-color: #eee1cd; background: #fffaf1; }
+.builder-header .icon-button { margin: 0; width: 44px; height: 44px; background: #f3e9d9; border-radius: 50%; }
+.builder-header strong { font-size: 17px; letter-spacing: -.02em; }
+.builder-test { margin-left: auto; padding: 5px 6px; border: 1px solid #e5d2b5; border-radius: 5px; color: #8b623d; font-size: 9px; font-weight: 700; }
+.builder-scroll { padding: 12px 16px 20px; scrollbar-width: thin; }
+.builder-intro { margin: 0 0 12px; text-align: center; color: #92623d; font-size: 13px; }
+.builder-base { display: flex; align-items: center; gap: 12px; min-height: 49px; padding: 0 12px; border: 1px solid #e8dac6; border-radius: 10px; background: #fffcf6; }
+.builder-base > span { color: #8f6c4e; font-size: 12px; }
+.builder-base select { min-width: 0; flex: 1; min-height: 46px; border: 0; background: transparent; color: #35291f; font-size: 16px; font-weight: 700; text-overflow: ellipsis; }
+.builder-size { display: flex; gap: 6px; margin-top: 9px; }
+.builder-size button { flex: 1; min-height: 40px; border: 1px solid #e9dcc7; border-radius: 8px; background: #fffcf6; color: #5e4e3d; font-size: 13px; }
+.builder-size button[aria-pressed="true"] { background: #352b21; border-color: #352b21; color: #fffaf1; }
+.builder-stage { position: relative; width: min(100%, 490px); height: 330px; margin: 0 auto; isolation: isolate; }
+.builder-orbit { position: absolute; top: 27px; bottom: 38px; left: 10%; right: 10%; border: 1px dashed #deccb0; border-radius: 50%; transform: rotate(-13deg); pointer-events: none; }
+.builder-orbit::after { content: ""; position: absolute; inset: 13px; border: 1px solid #f0e3d0; border-radius: 50%; }
+.builder-chef { position: absolute; left: 50%; top: 38px; width: 180px; height: 246px; transform: translateX(-50%); pointer-events: none; }
+.builder-dish { position: absolute; left: 50%; top: 166px; width: 124px; height: 120px; transform: translateX(-50%); pointer-events: none; }
+.builder-food { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 2px #69432118); }
+.builder-ingredients { position: absolute; inset: 0; }
+.builder-ingredient { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; width: 96px; min-height: 88px; padding: 4px 2px; border: 0; background: transparent; color: #5e432d; transform: translateX(-50%); -webkit-tap-highlight-color: transparent; }
+.builder-ingredient.slot-0 { left: 15%; top: 4px; }
+.builder-ingredient.slot-1 { left: 85%; top: 4px; }
+.builder-ingredient.slot-2 { left: 14%; top: 113px; }
+.builder-ingredient.slot-3 { left: 86%; top: 113px; }
+.builder-ingredient.slot-4 { left: 17%; top: 222px; }
+.builder-ingredient.slot-5 { left: 83%; top: 222px; }
+.builder-ingredient-art { position: relative; display: grid; place-items: center; width: 61px; height: 61px; border: 1px solid #ecdbc2; border-radius: 50%; background: #fffef9; box-shadow: 0 4px 12px #6847240b; animation: builder-float 4.6s cubic-bezier(.45,0,.55,1) var(--float-delay) infinite; transition: background-color 160ms, border-color 160ms; }
+.builder-ingredient-art svg { width: 43px; height: 43px; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.builder-ingredient-name { max-width: 100%; font-size: 11px; font-weight: 650; line-height: 1.18; text-align: center; overflow-wrap: anywhere; }
+.builder-ingredient small { color: #886749; font-size: 10px; }
+.builder-ingredient-check { position: absolute; right: -2px; bottom: -2px; display: none; place-items: center; width: 19px; height: 19px; border: 2px solid #fffaf1; border-radius: 50%; color: #fff; background: #d7322a; font-size: 11px; font-weight: 900; }
+.builder-ingredient[aria-pressed="true"] .builder-ingredient-art { background: #ffe0bf; border-color: #d7322a; }
+.builder-ingredient[aria-pressed="true"] .builder-ingredient-check { display: grid; }
+.builder-ingredient:active .builder-ingredient-art svg { transform: scale(.92); }
+.builder-ingredient:focus-visible { outline-offset: 3px; border-radius: 12px; }
+.builder-ingredient:focus-visible .builder-ingredient-art { animation-play-state: paused; }
+.builder-flying { position: absolute; z-index: 5; width: 48px; height: 48px; pointer-events: none; }
+.builder-flying svg { width: 100%; height: 100%; }
+.builder-instruction { margin: -4px 0 13px; color: #8b6445; font-size: 12px; text-align: center; }
+.builder-filters { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.builder-filters button { flex: 1; min-height: 44px; padding: 0 11px; border: 1px solid #e8dac7; border-radius: 20px; background: #fffcf6; color: #75583d; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.builder-filters button[aria-pressed="true"] { color: #fffaf1; background: #352b21; border-color: #352b21; }
+.builder-pages { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 49px; margin: 3px 0 7px; color: #8a6b50; font-size: 12px; }
+.builder-pages button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: #665039; }
+.builder-pages button:disabled { opacity: .25; cursor: default; }
+.builder-pages > span { min-width: 90px; text-align: center; }
+.builder-pages small { display: block; margin-top: 3px; font-size: 10px; }
+.builder-recipe { padding: 13px; border: 1px solid #e9d9bf; border-radius: 12px; background: #fffdf8; }
+.builder-recipe-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.builder-recipe h2, .builder-removals h2 { margin: 0; color: #392b1e; font-size: 14px; font-weight: 750; }
+.builder-reset { min-height: 44px; padding: 0; border: 0; background: transparent; color: #b13b2b; font-size: 11px; }
+.builder-recipe-empty { margin: 8px 0 0; color: #8c725a; font-size: 12px; line-height: 1.4; }
+.builder-selected { display: flex; flex-wrap: wrap; gap: 6px; }
+.builder-selected:not(:empty) { margin-top: 9px; }
+.builder-selected button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border: 0; border-radius: 7px; color: #793824; background: #f9e6d3; text-align: left; font-size: 12px; }
+.builder-selected button > span { font-size: 18px; color: #b04b38; }
+.builder-feedback { margin: 0 0 10px; padding: 10px; border-radius: 7px; color: #a63827; background: #fff0e9; font-size: 12px; line-height: 1.4; }
+.builder-removals { margin-top: 20px; }
+.builder-removals > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
+.builder-removals button { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 44px; padding: 8px 10px; border: 1px solid #e8dac6; border-radius: 8px; color: #775e46; background: #fffcf6; text-align: left; font-size: 12px; }
+.builder-removals button > span { opacity: 0; color: #b23829; }
+.builder-removals button[aria-pressed="true"] { background: #f9e6d3; border-color: #d9a88a; }
+.builder-removals button[aria-pressed="true"] > span { opacity: 1; }
+.builder-composition { margin-top: 16px; color: #8d7258; font-size: 12px; line-height: 1.5; }
+.builder-composition summary { min-height: 44px; padding: 12px 0; cursor: pointer; }
+.builder-composition p { margin: 0 0 10px; }
+.builder-status { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.builder-footer { gap: 18px; background: #fffaf1; border-color: #e9dcc7; }
+.builder-footer > div { min-width: 80px; display: grid; gap: 3px; }
+.builder-footer small { color: #8f6c4e; font-size: 11px; }
+.builder-footer strong { color: #392819; font-size: 22px; font-weight: 800; }
+.builder-footer .primary-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; border-radius: 10px; background: #d7322a; transition: transform 140ms cubic-bezier(.23,1,.32,1); }
+.builder-footer .primary-button:active { transform: scale(.98); }
+@keyframes builder-float { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@media (hover:hover) and (pointer:fine) { .builder-ingredient:hover .builder-ingredient-art { animation-play-state: paused; border-color: #d39c72; } }
+@media (max-width:359px) { .builder-header { padding-inline: 8px; gap: 6px; } .builder-header strong { font-size: 15px; } .builder-scroll { padding-inline: 10px; } .builder-ingredient { width: 83px; } .builder-ingredient-art { width: 54px; height: 54px; } .builder-chef { width: 157px; } .builder-filters button { padding-inline: 8px; } }
+@media (prefers-reduced-motion:reduce) { .builder-ingredient-art { animation: none; } .builder-entry-cards button, .builder-ingredient-art svg, .builder-footer .primary-button { transition: none; } }
