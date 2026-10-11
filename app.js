@@ -337,7 +337,7 @@ function addToCart() {
 
 let mealBuilder = {close() {}};
 // Keep the standard menu usable if the optional prototype cannot load.
-if (builderDialog && $("#builder-entry")) void import("./builder.js?v=20261010-pita-pocket").then(({createMealBuilder}) => {
+if (builderDialog && $("#builder-entry")) void import("./builder.js?v=20261011-builder-layout").then(({createMealBuilder}) => {
   mealBuilder = createMealBuilder({
   dialog: builderDialog, entry: $("#builder-entry"), getProducts: () => products,
   telegram, toast: showToast,
